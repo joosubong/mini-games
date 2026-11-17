@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>밀어서 10 ㄱㄴ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<style>
+/*
+VOICE: 경쾌한 보드게임, 짧은 안내
+IDEA: 라비린스 보드판에 숫자 타일
+PICTURE: 게임판 자체가 그림
+COLOUR and TYPE: 크림 바탕, 숫자별 파스텔 타일, Jua
+LAYOUT: 위에 점수, 남은 횟수, 다음 블록, 가운데 판
+*/
+:root{color-scheme:light dark;--bg:light-dark(#fdf3e1,#2a2018);--ink:light-dark(#4a3426,#f6e7d0);--card:light-dark(#fffaf0,#3a2c20);--line:light-dark(#e4cfae,#5a4430)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:"Jua",system-ui,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;overscroll-behavior:none;touch-action:none;user-select:none;-webkit-user-select:none;overflow:hidden}
+#wrap{max-width:460px;margin:0 auto;padding:12px;display:flex;flex-direction:column;align-items:center;gap:8px}
+#hud{width:100%;display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:17px}
+.box{background:var(--card);border-radius:12px;padding:6px 10px;box-shadow:0 2px 0 var(--line);white-space:nowrap;text-align:center}
+.box b{font-size:20px}
+#nextTile{display:inline-flex;width:30px;height:30px;border-radius:8px;align-items:center;justify-content:center;font-size:20px;vertical-align:middle;margin-left:4px;color:#3a2a1e}
+canvas{touch-action:none;display:block}
+#msg{height:24px;font-size:18px;color:#e2553f;text-align:center}
+#help{font-size:14px;text-align:center;line-height:1.5;opacity:.85}
+#overlay{position:fixed;inset:0;background:rgba(40,28,20,.6);display:flex;align-items:center;justify-content:center;z-index:5}
+#overlay.hide{display:none}
+#panel{background:var(--card);border-radius:20px;padding:24px 22px;text-align:center;width:min(88vw,340px)}
+#panel h1{font-size:28px;line-height:1.1;margin-bottom:10px}
+#panel p{font-size:15px;line-height:1.55;margin-bottom:16px;font-family:system-ui,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+#panel .big{font-size:40px;margin:6px 0}
+button{font:inherit;font-size:19px;background:#e2553f;color:#fff;border:0;border-radius:14px;padding:12px 30px;min-height:44px;box-shadow:0 4px 0 #a83727;cursor:pointer}
+button:active{transform:translateY(2px);box-shadow:0 2px 0 #a83727}
+button:focus-visible{outline:3px solid #7cc36a;outline-offset:3px}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="hud">
+    <div class="box">점수<br><b id="score">0</b></div>
+    <div class="box">남은 횟수<br><b id="moves">20</b></div>
+    <div class="box" style="display:none">다음<span id="nextTile">5</span></div>
+    <div class="box">최고<br><b id="best">0</b></div>
+  </div>
+  <canvas id="cv"></canvas>
+  <div id="msg"></div>
+  <div id="help">화살표를 누르거나 줄을 밀면 한 칸씩 돌아가요<br>가로, 세로, ㄱㄴ 모양으로 붙은 3개 이상의 합이 10이면 펑!</div>
+</div>
+<div id="overlay"><div id="panel"></div></div>
+<script>
+{
+// 밸런스 값은 여기서 조절
+let N = 6;                 // 판 크기 N x N (튜토리얼은 4)
+const START_MOVES = 20;    // 시작 밀기 횟수
+const ALLOW_L = true;      // ㄱ, ㄴ 모양 연결도 인정
+const BONUS_MIN = 5;       // 이 개수 이상으로 터뜨려야 횟수 +1
+const MIN_RUN = 3;         // 최소 몇 개를 이어야 터지는지
+const BONUS_3 = 0;         // 3개로 10 만들면 받는 횟수
+const BONUS_4 = 1;         // 4개 이상으로 10 만들면 받는 횟수
+const BONUS_CHAIN = 0;
+const MAX_GAIN_PER_PUSH = 1; // 한 번 밀 때 받을 수 있는 횟수 최대치 (연쇄 포함)     // 연쇄일 때 줄마다 추가 횟수
+const SLIDE_SPEED = 9, FALL_SPEED = 14; // 칸/초
+
+const COLORS = ['#d9d2c7', '#ff9e94', '#ffbf6b', '#ffdc63', '#b9de7e', '#6fd1bd', '#79cdf2', '#9aa5e8', '#cb8de0', '#f58fb4'];
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const $ = id => document.getElementById(id);
+
+let cs, pad, W, H;
+let grid = [], next = 5, moves = START_MOVES, score = 0, best = 0;
+let state = 'menu', phase = 'idle', chain = 0, popT = 0;
+let outgoing = [], popups = [], msgTimer = 0, lastT = 0, down = null, pushGain = 0;
+
+try { best = +localStorage.getItem('push10Best') || 0; } catch (e) {}
+$('best').textContent = best;
+
+// 숫자 나오는 방식 조절
+const ZERO_CHANCE = 0.1;     // 0이 나올 확률
+const SMALL_RATIO = 0.5;      // 0이 아닐 때 작은 숫자(1~5)가 나올 비율, 나머지는 큰 숫자(6~9)
+const PARTNER_CHANCE = 0; // 판에 있는 큰 숫자(6~9)의 짝(10-n)을 줄 확률
+const MIN_LOW = 5;           // 판 위 0, 1, 2가 이 개수보다 적으면 새 블록을 0, 1, 2로 채움
+const MAX_SAME = 6;          // 판 위 같은 숫자 최대 개수
+
+function weighted() {
+  if (Math.random() < ZERO_CHANCE) return 0;
+  if (Math.random() < SMALL_RATIO) return 1 + Math.floor(Math.random() * 5);
+  return 6 + Math.floor(Math.random() * 4);
+}
+function countOf(n) {
+  let c = 0;
+  grid.forEach(row => row.forEach(b => { if (b && b.n === n && !(b.pop > 0)) c++; }));
+  return c;
+}
+function rnd() {
+  if (grid.length === N) {
+    let low = 0;
+    grid.forEach(row => row.forEach(b => { if (b && !(b.pop > 0) && b.n <= 2) low++; }));
+    if (low < MIN_LOW) return [0, 1, 1, 2, 2][Math.floor(Math.random() * 5)];
+  }
+  if (grid.length === N && Math.random() < PARTNER_CHANCE) {
+    const big = [];
+    grid.forEach(row => row.forEach(b => { if (b && b.n >= 6 && !(b.pop > 0)) big.push(b.n); }));
+    if (big.length) return 10 - big[Math.floor(Math.random() * big.length)];
+  }
+  for (let k = 0; k < 10; k++) { const n = weighted(); if (countOf(n) < MAX_SAME) return n; }
+  return weighted();
+}
+function block(n) { return { n: n, ox: 0, oy: 0, pop: 0 }; }
+
+function resize() {
+  const maxW = Math.min(window.innerWidth - 24, 436);
+  const maxH = window.innerHeight - 220;
+  cs = Math.max(36, Math.floor(Math.min(maxW / (N + 1.3), maxH / (N + 1.3))));
+  pad = Math.floor(cs * 0.65);
+  W = H = N * cs + pad * 2;
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = W * dpr; cv.height = H * dpr;
+  cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener('resize', resize);
+
+// 시작 판: 처음부터 터지는 줄이 없게
+function makeBoard() {
+  grid = [];
+  for (let y = 0; y < N; y++) { grid.push([]); for (let x = 0; x < N; x++) grid[y].push(block(rnd())); }
+  for (let k = 0; k < 500; k++) {
+    const m = findMatches();
+    if (!m.cells.size) break;
+    m.cells.forEach(id => { grid[Math.floor(id / N)][id % N].n = rnd(); });
+  }
+}
+
+// 가로 세로로 붙은 숫자 합이 정확히 10인 구간 찾기
+function findMatches() {
+  const cells = new Set(), runs = [];
+  const scan = (get, dir) => {
+    for (let i = 0; i < N; i++) {
+      let s = 0;
+      for (let j = i; j < N; j++) {
+        const b = get(j);
+        if (!b) break;
+        s += b.n;
+        if (s > 10) break;
+        if (s === 10) {
+          // 뒤에 붙은 0도 같이 포함
+          while (j + 1 < N && get(j + 1) && get(j + 1).n === 0) j++;
+          if (j - i + 1 < MIN_RUN) break;
+          const run = [];
+          for (let k = i; k <= j; k++) run.push(get.id(k));
+          runs.push({ ids: run, dir: dir }); run.forEach(id => cells.add(id));
+          break;
+        }
+      }
+    }
+  };
+  for (let y = 0; y < N; y++) { const g = j => grid[y][j]; g.id = j => y * N + j; scan(g, 'H'); }
+  for (let x = 0; x < N; x++) { const g = j => grid[j][x]; g.id = j => j * N + x; scan(g, 'V'); }
+  // ㄱ, ㄴ 모양(한 번 꺾인 모양)도 합이 10이면 터짐
+  // 연쇄(떨어진 블록끼리)에서는 ㄱㄴ을 안 셈: 끝없는 연쇄 방지
+  if (ALLOW_L && chain === 0) {
+    const D = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+    const pairs = [[0, 1], [1, 2], [2, 3], [3, 0]];
+    const at = (x, y) => (x < 0 || y < 0 || x >= N || y >= N) ? null : grid[y][x];
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const c = grid[y][x];
+      if (!c) continue;
+      for (const [p, q] of pairs) {
+        const d1 = D[p], d2 = D[q];
+        let s1 = c.n;
+        const arm1 = [];
+        for (let a = 1; a < N; a++) {
+          const b1 = at(x + d1[0] * a, y + d1[1] * a);
+          if (!b1) break;
+          s1 += b1.n; arm1.push((y + d1[1] * a) * N + (x + d1[0] * a));
+          if (s1 > 10) break;
+          let s2 = s1;
+          const arm2 = [];
+          for (let b = 1; b < N; b++) {
+            const b2 = at(x + d2[0] * b, y + d2[1] * b);
+            if (!b2) break;
+            s2 += b2.n; arm2.push((y + d2[1] * b) * N + (x + d2[0] * b));
+            if (s2 > 10) break;
+            if (s2 === 10) {
+              const ids = [y * N + x].concat(arm1, arm2);
+              runs.push({ ids: ids, dir: 'L' }); ids.forEach(id => cells.add(id));
+            }
+          }
+        }
+      }
+    }
+  }
+  return { cells, runs };
+}
+
+function setMsg(text) {
+  $('msg').textContent = text;
+  clearTimeout(msgTimer);
+  msgTimer = setTimeout(() => $('msg').textContent = '', 1300);
+}
+
+// side: 'L' 왼쪽에서 넣기, 'R', 'T', 'B'
+function push(side, idx) {
+  if (state !== 'play' || phase !== 'idle') return;
+  if (!tut) { if (moves <= 0) return; moves--; }
+  const bx = x => pad + x * cs, by = y => pad + y * cs;
+  if (side === 'L') {
+    const out = grid[idx][N - 1];
+    outgoing.push({ n: out.n, x: bx(N - 1), y: by(idx), vx: 1, vy: 0, t: 1 });
+    for (let x = N - 1; x > 0; x--) { grid[idx][x] = grid[idx][x - 1]; grid[idx][x].ox -= cs; }
+    out.ox = -cs; grid[idx][0] = out;
+  } else if (side === 'R') {
+    const out = grid[idx][0];
+    outgoing.push({ n: out.n, x: bx(0), y: by(idx), vx: -1, vy: 0, t: 1 });
+    for (let x = 0; x < N - 1; x++) { grid[idx][x] = grid[idx][x + 1]; grid[idx][x].ox += cs; }
+    out.ox = cs; grid[idx][N - 1] = out;
+  } else if (side === 'T') {
+    const out = grid[N - 1][idx];
+    outgoing.push({ n: out.n, x: bx(idx), y: by(N - 1), vx: 0, vy: 1, t: 1 });
+    for (let y = N - 1; y > 0; y--) { grid[y][idx] = grid[y - 1][idx]; grid[y][idx].oy -= cs; }
+    out.oy = -cs; grid[0][idx] = out;
+  } else {
+    const out = grid[0][idx];
+    outgoing.push({ n: out.n, x: bx(idx), y: by(0), vx: 0, vy: -1, t: 1 });
+    for (let y = 0; y < N - 1; y++) { grid[y][idx] = grid[y + 1][idx]; grid[y][idx].oy += cs; }
+    out.oy = cs; grid[N - 1][idx] = out;
+  }
+  chain = 0; pushGain = 0;
+  phase = 'slide';
+}
+
+function checkMatches() {
+  const m = findMatches();
+  if (!m.cells.size) {
+    phase = 'idle';
+    if (tut) { tutAfterPush(); return; }
+    if (moves <= 0) gameOver();
+    return;
+  }
+  // 튜토리얼: 처음 터질 때 멈추고 왜 터지는지 보여줌
+  if (tut && !tut.explained) {
+    tut.explained = true; tut.runs = m.runs; phase = 'explain';
+    clearTimeout(msgTimer); $('msg').textContent = '판을 눌러 계속';
+    return;
+  }
+  if (tut) tut.hit = true;
+  chain++;
+  let gain = 0;
+  m.runs.forEach(r => {
+    gain += r.ids.length >= BONUS_MIN ? BONUS_4 : BONUS_3;
+    if (chain >= 2) gain += BONUS_CHAIN;
+  });
+  gain = Math.min(gain, Math.max(0, MAX_GAIN_PER_PUSH - pushGain));
+  pushGain += gain;
+  moves += gain;
+  const gainText = gain ? '  횟수+' + gain : '';
+  const pts = m.cells.size * 10 * chain;
+  score += pts;
+  m.cells.forEach(id => { grid[Math.floor(id / N)][id % N].pop = 1; });
+  let sx = 0, sy = 0;
+  m.cells.forEach(id => { sx += pad + (id % N + 0.5) * cs; sy += pad + (Math.floor(id / N) + 0.5) * cs; });
+  popups.push({ x: sx / m.cells.size, y: sy / m.cells.size, text: '+' + pts + gainText, t: 1 });
+  if (chain >= 2) setMsg(chain + '연쇄!');
+  popT = 0.3;
+  phase = 'pop';
+}
+
+// 터진 자리: 위 블록이 내려오고 맨 위에서 새 블록이 떨어짐
+function dropDown() {
+  for (let x = 0; x < N; x++) {
+    let write = N - 1;
+    for (let y = N - 1; y >= 0; y--) {
+      const b = grid[y][x];
+      if (b.pop > 0) continue;
+      if (write !== y) { b.oy -= (write - y) * cs; grid[write][x] = b; }
+      write--;
+    }
+    const missing = write + 1;
+    for (let y = write; y >= 0; y--) grid[y][x] = null;
+    for (let y = write; y >= 0; y--) { const b = block(rnd()); b.oy = -(missing + 0.3) * cs; grid[y][x] = b; }
+  }
+  phase = 'fall';
+}
+
+function settled() {
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (grid[y][x].ox || grid[y][x].oy) return false;
+  return true;
+}
+
+/* 입력: 바깥 화살표 탭, 또는 판 위에서 스와이프 */
+function local(e) {
+  const r = cv.getBoundingClientRect();
+  return [e.clientX - r.left, e.clientY - r.top];
+}
+cv.addEventListener('pointerdown', e => {
+  if (tut && phase === 'explain') { endExplain(); down = null; return; }
+  down = local(e);
+});
+cv.addEventListener('pointerup', e => {
+  if (!down) return;
+  const [px, py] = local(e), [dx0, dy0] = down;
+  down = null;
+  const dx = px - dx0, dy = py - dy0;
+  const gx = Math.floor((dx0 - pad) / cs), gy = Math.floor((dy0 - pad) / cs);
+  const inside = gx >= 0 && gy >= 0 && gx < N && gy < N;
+  if (inside && Math.max(Math.abs(dx), Math.abs(dy)) > cs * 0.35) {
+    if (Math.abs(dx) > Math.abs(dy)) push(dx > 0 ? 'L' : 'R', gy);
+    else push(dy > 0 ? 'T' : 'B', gx);
+    return;
+  }
+  if (Math.max(Math.abs(dx), Math.abs(dy)) > cs * 0.35) return;
+  const ax = Math.floor((px - pad) / cs), ay = Math.floor((py - pad) / cs);
+  if (ay >= 0 && ay < N && px < pad) push('L', ay);
+  else if (ay >= 0 && ay < N && px > pad + N * cs) push('R', ay);
+  else if (ax >= 0 && ax < N && py < pad) push('T', ax);
+  else if (ax >= 0 && ax < N && py > pad + N * cs) push('B', ax);
+});
+
+/* 튜토리얼 (4x4, 정해진 판) */
+const MAIN_N = 6;
+const HELP_TEXT = $('help').innerHTML;
+const TUT = [
+  { side: 'L', idx: 1, text: '반짝이는 화살표를 눌러 줄을 밀어보세요.<br>3개 이상 붙은 숫자의 합이 10이면 터져요!',
+    board: [[9, 8, 7, 9], [3, 4, 9, 3], [8, 9, 8, 7], [7, 8, 9, 8]] },
+  { side: 'R', idx: 2, text: '끝에서 밀려난 블록은 반대편으로 넘어와요.<br>넘어온 블록으로 10을 만들어보세요!',
+    board: [[8, 9, 7, 8], [9, 7, 8, 9], [5, 9, 2, 3], [7, 8, 9, 7]] },
+  { side: 'T', idx: 2, text: '세로로도 밀 수 있어요!',
+    board: [[9, 8, 6, 9], [8, 9, 1, 8], [7, 8, 7, 9], [9, 7, 3, 8]] },
+  { side: 'R', idx: 0, text: '7+3처럼 2개짜리는 안 터져요.<br>0은 합은 그대로, 개수만 늘려줘요. 0을 끼워보세요!',
+    board: [[3, 8, 0, 7], [9, 7, 9, 8], [8, 9, 7, 9], [7, 8, 8, 9]] },
+  { side: 'L', idx: 1, text: '이 버전은 ㄱ, ㄴ처럼 한 번 꺾인 모양도 돼요!<br>모서리를 돌아서 10을 만들어보세요.',
+    board: [[4, 1, 6, 9], [6, 9, 7, 5], [6, 8, 8, 9], [9, 8, 7, 9]] },
+  { side: 'R', idx: 2, text: '5개 이상으로 10을 만들면 횟수 +1!<br>횟수가 다 떨어지면 게임이 끝나요.',
+    board: [[8, 9, 7, 1], [6, 9, 7, 1], [3, 9, 7, 9], [7, 9, 4, 1]] },
+];
+let tut = null;
+
+function startTutorial() {
+  N = 4; resize();
+  tut = { step: 0, hit: false };
+  score = 0; moves = START_MOVES; outgoing = []; popups = [];
+  state = 'play';
+  $('overlay').classList.add('hide');
+  loadStep();
+}
+
+function loadStep() {
+  const st = TUT[tut.step];
+  grid = st.board.map(r => r.map(n => block(n)));
+  phase = 'idle'; tut.hit = false; tut.explained = false; tut.runs = null;
+  $('help').innerHTML = '<b>튜토리얼 ' + (tut.step + 1) + ' / ' + TUT.length + '</b><br>' + st.text;
+}
+
+function endExplain() { tut.runs = null; $('msg').textContent = ''; phase = 'slide'; }
+
+function tutAfterPush() {
+  phase = 'wait';
+  if (!tut.hit) {
+    setMsg('반짝이는 화살표를 눌러보세요');
+    setTimeout(() => { if (tut) loadStep(); }, 700);
+    return;
+  }
+  setTimeout(() => {
+    if (!tut) return;
+    tut.step++;
+    if (tut.step < TUT.length) { loadStep(); return; }
+    tut = null; state = 'menu';
+    $('help').innerHTML = HELP_TEXT;
+    try { localStorage.setItem('push10Tut', '1'); } catch (e) {}
+    showPanel('<h1>준비 끝!</h1><p>이제 6x6 판에서 진짜 게임을 시작해요.<br>횟수 ' + START_MOVES + '번으로 최대한 버텨보세요!</p><button id="go">시작</button>');
+  }, 900);
+}
+
+function startGame() {
+  tut = null; N = MAIN_N; resize(); $('help').innerHTML = HELP_TEXT;
+  score = 0; moves = START_MOVES; next = rnd(); outgoing = []; popups = [];
+  makeBoard();
+  state = 'play'; phase = 'idle';
+  $('overlay').classList.add('hide');
+}
+
+function gameOver() {
+  state = 'over';
+  if (score > best) { best = score; try { localStorage.setItem('push10Best', best); } catch (e) {} }
+  $('best').textContent = best;
+  showPanel('<h1>횟수 끝!</h1><div class="big">' + score + '점</div><p>최고 점수 ' + best + '점</p><button id="go">다시 하기</button>');
+}
+
+function showPanel(html) {
+  $('panel').innerHTML = html;
+  $('overlay').classList.remove('hide');
+  $('go').addEventListener('click', startGame);
+  if ($('tut')) $('tut').addEventListener('click', startTutorial);
+  $('go').focus();
+}
+
+/* 그리기 */
+function rr(x, y, w, h, r) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill(); }
+
+function drawBlock(X, Y, n, scale, alpha) {
+  const s = cs * 0.88 * scale, o = (cs - s) / 2;
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = 'rgba(70,45,25,.18)'; rr(X + o, Y + o + 3, s, s, s * 0.22);
+  ctx.fillStyle = COLORS[n]; rr(X + o, Y + o, s, s, s * 0.22);
+  ctx.fillStyle = 'rgba(255,255,255,.35)'; rr(X + o + s * 0.1, Y + o + s * 0.08, s * 0.8, s * 0.22, s * 0.11);
+  ctx.fillStyle = '#3a2a1e';
+  ctx.font = Math.floor(s * 0.55) + 'px Jua, sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(n, X + cs / 2, Y + cs / 2 + s * 0.04);
+  ctx.globalAlpha = 1;
+}
+
+function arrow(x, y, dir, off) {
+  const s = cs * 0.16;
+  ctx.fillStyle = off ? 'rgba(160,140,120,.3)' : '#c9a77a';
+  ctx.beginPath();
+  if (dir === 'R') { ctx.moveTo(x - s, y - s); ctx.lineTo(x + s, y); ctx.lineTo(x - s, y + s); }
+  if (dir === 'L') { ctx.moveTo(x + s, y - s); ctx.lineTo(x - s, y); ctx.lineTo(x + s, y + s); }
+  if (dir === 'D') { ctx.moveTo(x - s, y - s); ctx.lineTo(x, y + s); ctx.lineTo(x + s, y - s); }
+  if (dir === 'U') { ctx.moveTo(x - s, y + s); ctx.lineTo(x, y - s); ctx.lineTo(x + s, y + s); }
+  ctx.closePath(); ctx.fill();
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#f3dfbd'; rr(0, 0, W, H, 18);
+  ctx.fillStyle = '#e8cfa5'; rr(pad - 4, pad - 4, N * cs + 8, N * cs + 8, 12);
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    ctx.fillStyle = (x + y) % 2 ? '#f7e8cc' : '#fbf0dc';
+    ctx.fillRect(pad + x * cs, pad + y * cs, cs, cs);
+  }
+  if (tut && phase === 'idle') {
+    const st = TUT[tut.step];
+    ctx.fillStyle = 'rgba(226,85,63,.12)';
+    if (st.side === 'L' || st.side === 'R') ctx.fillRect(pad, pad + st.idx * cs, N * cs, cs);
+    else ctx.fillRect(pad + st.idx * cs, pad, cs, N * cs);
+  }
+  for (let i = 0; i < N; i++) {
+    const c = pad + (i + 0.5) * cs;
+    arrow(pad / 2, c, 'R', moves <= 0); arrow(W - pad / 2, c, 'L', moves <= 0);
+    arrow(c, pad / 2, 'D', moves <= 0); arrow(c, H - pad / 2, 'U', moves <= 0);
+  }
+  if (tut && phase === 'idle') {
+    const st = TUT[tut.step], c = pad + (st.idx + 0.5) * cs;
+    const p = st.side === 'L' ? [pad / 2, c] : st.side === 'R' ? [W - pad / 2, c] : st.side === 'T' ? [c, pad / 2] : [c, H - pad / 2];
+    const k = 0.5 + 0.5 * Math.sin(performance.now() / 180);
+    ctx.fillStyle = 'rgba(226,85,63,' + (0.25 + 0.35 * k) + ')';
+    ctx.beginPath(); ctx.arc(p[0], p[1], pad * 0.42 + k * 3, 0, Math.PI * 2); ctx.fill();
+    arrow(p[0], p[1], { L: 'R', R: 'L', T: 'D', B: 'U' }[st.side], false);
+  }
+  if (!grid.length) return;
+
+  ctx.save();
+  ctx.beginPath(); ctx.rect(pad - 4, pad - 4, N * cs + 8, N * cs + 8); ctx.clip();
+  outgoing.forEach(o => drawBlock(o.x + o.vx * (1 - o.t) * cs, o.y + o.vy * (1 - o.t) * cs, o.n, 1, Math.max(0, o.t)));
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const b = grid[y][x];
+    if (phase === 'pop' && b.pop > 0) {
+      const t = popT / 0.3;
+      ctx.fillStyle = 'rgba(255,255,255,' + (0.7 * t) + ')';
+      rr(pad + x * cs + 2, pad + y * cs + 2, cs - 4, cs - 4, cs * 0.2);
+      drawBlock(pad + x * cs, pad + y * cs, b.n, 0.4 + 0.75 * t, t);
+    } else {
+      drawBlock(pad + x * cs + b.ox, pad + y * cs + b.oy, b.n, 1, 1);
+    }
+  }
+  ctx.restore();
+
+  if (tut && phase === 'explain' && tut.runs) {
+    tut.runs.forEach(r => {
+      const xs = r.ids.map(id => id % N), ys = r.ids.map(id => Math.floor(id / N));
+      const x0 = pad + Math.min(...xs) * cs, y0 = pad + Math.min(...ys) * cs;
+      const x1 = pad + (Math.max(...xs) + 1) * cs, y1 = pad + (Math.max(...ys) + 1) * cs;
+      ctx.strokeStyle = '#e2553f'; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.roundRect(x0 + 2, y0 + 2, x1 - x0 - 4, y1 - y0 - 4, cs * 0.2); ctx.stroke();
+      let label = r.ids.map(id => grid[Math.floor(id / N)][id % N].n).join(' + ') + ' = 10';
+      if (r.ids.length >= BONUS_MIN) label += '  횟수 +1!';
+      ctx.font = Math.floor(cs * 0.36) + 'px Jua, sans-serif';
+      const tw = ctx.measureText(label).width + cs * 0.4, th = cs * 0.56;
+      let lx, ly;
+      if (r.dir === 'H') { lx = (x0 + x1) / 2; ly = y0 > cs ? y0 - th * 0.7 : y1 + th * 0.7; }
+      else { ly = (y0 + y1) / 2; lx = x1 + tw / 2 + 6 < W ? x1 + tw / 2 + 6 : x0 - tw / 2 - 6; }
+      lx = Math.max(tw / 2 + 4, Math.min(W - tw / 2 - 4, lx));
+      ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = '#e2553f'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.roundRect(lx - tw / 2, ly - th / 2, tw, th, th / 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#e2553f'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(label, lx, ly + 1);
+    });
+  }
+
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  popups.forEach(p => {
+    ctx.globalAlpha = Math.max(0, p.t);
+    ctx.font = Math.floor(cs * 0.42) + 'px Jua, sans-serif';
+    ctx.lineWidth = 4; ctx.strokeStyle = '#fffaf0';
+    const yy = p.y - (1 - p.t) * cs;
+    ctx.strokeText(p.text, p.x, yy);
+    ctx.fillStyle = '#e2553f'; ctx.fillText(p.text, p.x, yy);
+    ctx.globalAlpha = 1;
+  });
+}
+
+function approach(v, step) { return v > 0 ? Math.max(0, v - step) : Math.min(0, v + step); }
+
+function loop(now) {
+  const dt = Math.min(0.05, (now - lastT) / 1000 || 0);
+  lastT = now;
+  if (grid.length) {
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const b = grid[y][x];
+      b.ox = approach(b.ox, cs * SLIDE_SPEED * dt);
+      b.oy = approach(b.oy, cs * (phase === 'fall' ? FALL_SPEED : SLIDE_SPEED) * dt);
+    }
+  }
+  outgoing.forEach(o => o.t -= dt * SLIDE_SPEED * 0.9);
+  outgoing = outgoing.filter(o => o.t > 0);
+  if (state === 'play') {
+    if ((phase === 'slide' || phase === 'fall') && settled()) checkMatches();
+    else if (phase === 'pop') { popT -= dt; if (popT <= 0) dropDown(); }
+  }
+  popups.forEach(p => p.t -= dt * 0.8);
+  popups = popups.filter(p => p.t > 0);
+  $('score').textContent = score;
+  $('moves').textContent = moves;
+  $('nextTile').textContent = next;
+  $('nextTile').style.background = COLORS[next];
+  draw();
+  requestAnimationFrame(loop);
+}
+
+resize();
+makeBoard();
+showPanel('<h1>밀어서 10 ㄱㄴ</h1><p>바깥 화살표를 누르거나 줄을 스와이프하면<br>줄이 한 칸 밀리고, 끝에서 빠진 블록은 반대편으로 넘어가요.<br>가로나 세로로 3개 이상 붙은 합이 10이면 터져요.<br>ㄱ, ㄴ처럼 한 번 꺾인 모양도 돼요!<br>2개짜리는 안 돼요. 0을 끼워서 3개로 만들어요!<br>5개 이상으로 터뜨리면 횟수 +1, 횟수가 다 떨어지면 끝!</p><div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><button id="tut">튜토리얼</button><button id="go" style="background:#8b6b4a;box-shadow:0 4px 0 #5c432c">바로 시작</button></div>');
+requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>

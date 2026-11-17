@@ -13,12 +13,12 @@ body{background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,"Apple SD Go
 main{max-width:640px;margin:0 auto;padding:32px 16px 48px}
 h1{font-family:"Jua",sans-serif;font-size:34px;line-height:1.1;margin-bottom:8px}
 .lead{color:var(--sub);margin-bottom:24px}
-.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:14px}
 .list{display:grid;gap:14px}
 a.card{display:block;text-decoration:none;color:inherit;background:var(--card);border-radius:16px;padding:16px 18px;box-shadow:0 3px 0 var(--line);transition:transform .15s}
 a.card:hover{transform:translateY(-2px)}
 a.card:focus-visible{outline:3px solid #e2553f;outline-offset:3px}
-a.sq{aspect-ratio:1/1;min-height:max-content;display:flex;flex-direction:column;justify-content:space-between;padding:14px}
+a.sq{aspect-ratio:5/4;min-height:max-content;display:flex;flex-direction:column;justify-content:space-between;padding:14px}
 .top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px}
 .name{font-family:"Jua",sans-serif;font-size:22px;line-height:1.2}
 .sq .name{font-size:20px}
@@ -38,8 +38,12 @@ footer{margin-top:28px;font-size:13px;color:var(--sub)}
   <p class="lead">아이디어를 바로 만들어보고 해본 게임들이에요. 잘 된 것도, 접은 것도 같이 올려둬요.</p>
   <div class="grid">
     <a class="card sq" href="push-to-10.html">
-      <span class="name">밀어서 10</span>
+      <span class="name">밀어서 10<span class="sub">가로, 세로 직선만<br>4개 이상 이으면 횟수 +1</span></span>
       <span class="tag">진행 중</span>
+    </a>
+    <a class="card sq" href="push-to-10-L.html">
+      <span class="name">밀어서 10 ㄱㄴ<span class="sub">ㄱ, ㄴ 꺾인 모양도 인정<br>5개 이상 이으면 횟수 +1</span></span>
+      <span class="tag try">새 버전</span>
     </a>
     <a class="card sq" href="worm-apple-chain-2s.html">
       <span class="name">애벌레 사과<span class="sub">4색 고정<br>6개 이으면 +2초</span></span>
