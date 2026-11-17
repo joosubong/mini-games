@@ -48,12 +48,12 @@ button:focus-visible{outline:3px solid #7cc36a;outline-offset:3px}
   <div id="timebar"><div id="timefill"></div></div>
   <canvas id="cv"></canvas>
   <div id="msg"></div>
-  <div id="help">같은 색 사과 3개 이상을 이어서 그려요 (대각선 OK)<br>6개 이상이면 +3초, 7개 이상이면 황금 사과 등장!</div>
+  <div id="help">같은 색 사과 3개 이상을 이어서 그려요 (대각선 OK)<br>6개 이상 이으면 +3초!</div>
 </div>
 <div id="overlay"><div id="panel"></div></div>
 <script>
 {
-const COLS = 7, ROWS = 8, TIME = 60, MIN_CHAIN = 3;
+const COLS = 8, ROWS = 14, TIME = 60, MIN_CHAIN = 3;
 const GOLD = 4;
 const COLOR = ['#e5483a', '#86c440', '#f3c43a', '#9b6bd3', '#ffd23f'];
 const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
@@ -183,11 +183,12 @@ function finishEat() {
   score += pts;
   let text = '';
   if (n >= 6) { timeLeft = Math.min(TIME, timeLeft + 3); text = '+3초!'; }
-  if (n >= 7) text = '황금 사과 등장!';
   if (text) setMsg(text);
   const lp = anim.pts[anim.pts.length - 1];
   popups.push({ x: lp[0], y: lp[1], text: '+' + pts, t: 1 });
-  dropDown(n >= 7);
+  // 먹은 사과를 판에서 지운 뒤 위 사과들을 내림
+  anim.cells.forEach(c => { grid[c[1]][c[0]] = null; });
+  dropDown(false); // 황금 사과(아무 색이나 이어지는 사과)는 뺌
   anim = null;
 }
 
