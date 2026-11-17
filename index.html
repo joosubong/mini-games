@@ -13,17 +13,22 @@ body{background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,"Apple SD Go
 main{max-width:640px;margin:0 auto;padding:32px 16px 48px}
 h1{font-family:"Jua",sans-serif;font-size:34px;line-height:1.1;margin-bottom:8px}
 .lead{color:var(--sub);margin-bottom:24px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:14px}
 .list{display:grid;gap:14px}
 a.card{display:block;text-decoration:none;color:inherit;background:var(--card);border-radius:16px;padding:16px 18px;box-shadow:0 3px 0 var(--line);transition:transform .15s}
 a.card:hover{transform:translateY(-2px)}
 a.card:focus-visible{outline:3px solid #e2553f;outline-offset:3px}
+a.sq{aspect-ratio:1/1;min-height:max-content;display:flex;flex-direction:column;justify-content:space-between;padding:14px}
 .top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px}
-.name{font-family:"Jua",sans-serif;font-size:22px}
-.tag{font-size:13px;padding:2px 10px;border-radius:999px;white-space:nowrap;background:#e2553f;color:#fff}
+.name{font-family:"Jua",sans-serif;font-size:22px;line-height:1.2}
+.sq .name{font-size:20px}
+.sub{display:block;font-family:"Jua",sans-serif;font-size:14px;line-height:1.35;color:var(--sub);margin-top:4px}
+.tag{font-size:13px;padding:2px 10px;border-radius:999px;white-space:nowrap;background:#e2553f;color:#fff;align-self:flex-start}
 .tag.try{background:#8b6b4a}
 .tag.old{background:#b3a593}
 .desc{color:var(--sub);font-size:15px}
 footer{margin-top:28px;font-size:13px;color:var(--sub)}
+@media (max-width:480px){.sq .name{font-size:17px}.sub{font-size:12px}a.sq{padding:12px}.tag{font-size:12px;padding:2px 8px}}
 @media (prefers-reduced-motion:reduce){a.card{transition:none}}
 </style>
 </head>
@@ -31,18 +36,24 @@ footer{margin-top:28px;font-size:13px;color:var(--sub)}
 <main>
   <h1>부엌강아지 미니게임 실험실</h1>
   <p class="lead">아이디어를 바로 만들어보고 해본 게임들이에요. 잘 된 것도, 접은 것도 같이 올려둬요.</p>
+  <div class="grid">
+    <a class="card sq" href="push-to-10.html">
+      <span class="name">밀어서 10</span>
+      <span class="tag">진행 중</span>
+    </a>
+    <a class="card sq" href="worm-apple-chain-2s.html">
+      <span class="name">애벌레 사과<span class="sub">4색 고정<br>6개 이으면 +2초</span></span>
+      <span class="tag">진행 중</span>
+    </a>
+    <a class="card sq" href="worm-apple-chain.html">
+      <span class="name">애벌레 사과<span class="sub">6개 이으면 +3초<br>3000점 파랑 추가<br>8000점 분홍 추가<br>20000점 주황 추가</span></span>
+      <span class="tag">진행 중</span>
+    </a>
+  </div>
   <div class="list">
-    <a class="card" href="push-to-10.html">
-      <div class="top"><span class="name">밀어서 10</span><span class="tag">진행 중</span></div>
-      <p class="desc">줄을 밀어서 3개 이상 붙은 숫자의 합을 10으로 만들어요. 튜토리얼 있어요.</p>
-    </a>
     <a class="card" href="push-to-10-clear.html">
-      <div class="top"><span class="name">밀어서 10 클리어 모드</span><span class="tag try">실험 중</span></div>
+      <div class="top"><span class="name">밀어서 10 클리어 모드</span><span class="tag old">접은 아이디어</span></div>
       <p class="desc">터진 자리가 빈칸으로 남는 큰 판. 정해진 횟수 안에 판을 최대한 비워요.</p>
-    </a>
-    <a class="card" href="worm-apple-chain.html">
-      <div class="top"><span class="name">애벌레 사과 이어먹기</span><span class="tag old">접은 아이디어</span></div>
-      <p class="desc">같은 색 사과를 이어서 그리면 애벌레가 냠냠 먹어요.</p>
     </a>
     <a class="card" href="worm-apple-escape.html">
       <div class="top"><span class="name">애벌레 사과 탈출</span><span class="tag old">접은 아이디어</span></div>
