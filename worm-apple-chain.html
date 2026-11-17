@@ -19,13 +19,13 @@ LAYOUT: 위에 점수와 시간, 가운데 판, 아래 안내
 *{box-sizing:border-box;min-width:0;margin:0;padding:0}
 html,body{height:100%}
 body{background:var(--bg);color:var(--ink);font-family:"Jua",system-ui,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;overscroll-behavior:none;touch-action:none;user-select:none;-webkit-user-select:none;overflow:hidden}
-#wrap{max-width:540px;margin:0 auto;padding:8px;display:flex;flex-direction:column;align-items:center;gap:6px}
+#wrap{position:relative;max-width:540px;margin:0 auto;padding:6px;display:flex;flex-direction:column;align-items:center;gap:6px}
 #hud{width:100%;display:flex;justify-content:space-between;gap:8px;font-size:18px}
-.box{background:var(--card);border-radius:12px;padding:6px 12px;box-shadow:0 2px 0 var(--line);white-space:nowrap}
-#timebar{width:100%;height:10px;background:var(--line);border-radius:6px;overflow:hidden}
+.box{background:var(--card);border-radius:12px;padding:4px 12px;box-shadow:0 2px 0 var(--line);white-space:nowrap}
+#timebar{width:100%;height:8px;background:var(--line);border-radius:6px;overflow:hidden}
 #timefill{height:100%;background:#7cc36a;width:100%}
 canvas{touch-action:none;display:block;border-radius:16px}
-#msg{height:24px;font-size:18px;color:#e2553f;text-align:center}
+#msg{position:absolute;left:0;right:0;bottom:18px;font-size:20px;color:#e2553f;text-align:center;pointer-events:none;text-shadow:0 0 4px #fff,0 0 8px #fff}
 #help{font-size:14px;text-align:center;line-height:1.5;opacity:.85}
 #overlay{position:fixed;inset:0;background:rgba(40,28,20,.6);display:flex;align-items:center;justify-content:center;z-index:5}
 #overlay.hide{display:none}
@@ -67,8 +67,8 @@ try { best = +localStorage.getItem('wormChainBest') || 0; } catch (e) {}
 $('best').textContent = best;
 
 function resize() {
-  const maxW = Math.min(window.innerWidth - 16, 520);
-  const maxH = window.innerHeight - 110;
+  const maxW = Math.min(window.innerWidth - 12, 520);
+  const maxH = window.innerHeight - 76; // 위쪽 점수판과 시간 막대 높이만 빼고 전부 판으로
   cs = Math.max(34, Math.floor(Math.min(maxW / COLS, maxH / ROWS)));
   W = COLS * cs; H = ROWS * cs;
   const dpr = window.devicePixelRatio || 1;
@@ -236,7 +236,7 @@ function showPanel(html) {
 function ell(x, y, rx, ry, rot) { ctx.beginPath(); ctx.ellipse(x, y, rx, ry, rot || 0, 0, Math.PI * 2); ctx.fill(); }
 
 function drawApple(X, Y, c, scale, lit) {
-  const r = cs * 0.4 * scale; // 칸 대비 사과 크기
+  const r = cs * 0.38 * scale; // 칸 대비 사과 크기
   ctx.fillStyle = 'rgba(60,40,20,.12)'; ell(X, Y + r * 0.85, r * 0.8, r * 0.2);
   ctx.fillStyle = COLOR[c];
   ell(X - r * 0.28, Y + r * 0.05, r * 0.72, r * 0.8);
