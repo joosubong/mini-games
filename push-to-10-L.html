@@ -48,7 +48,7 @@ button:focus-visible{outline:3px solid #7cc36a;outline-offset:3px}
   </div>
   <canvas id="cv"></canvas>
   <div id="msg"></div>
-  <div id="help">화살표를 누르거나 줄을 밀면 한 칸씩 돌아가요<br>가로, 세로, ㄱㄴ 모양으로 붙은 3개 이상의 합이 10이면 펑!</div>
+  <div id="help">화살표를 누르거나 줄을 밀면 한 칸씩 돌아가요<br>가로 세로 3개 이상 합이 10이면 펑! 네 모서리는 ㄱㄴ 모양도 OK</div>
 </div>
 <div id="overlay"><div id="panel"></div></div>
 <script>
@@ -57,7 +57,9 @@ button:focus-visible{outline:3px solid #7cc36a;outline-offset:3px}
 let N = 6;                 // 판 크기 N x N (튜토리얼은 4)
 const START_MOVES = 20;    // 시작 밀기 횟수
 const ALLOW_L = true;      // ㄱ, ㄴ 모양 연결도 인정
-const BONUS_MIN = 5;       // 이 개수 이상으로 터뜨려야 횟수 +1
+const BONUS_MIN = 4;       // 이 개수 이상으로 터뜨려야 횟수 +1
+const SHOW_WHY = true;     // 내가 민 직후 왜 터지는지 잠깐 보여줌
+const SHOW_TIME = 1.4;     // 보여주는 시간 (초), 판을 누르면 바로 넘어감
 const MIN_RUN = 3;         // 최소 몇 개를 이어야 터지는지
 const BONUS_3 = 0;         // 3개로 10 만들면 받는 횟수
 const BONUS_4 = 1;         // 4개 이상으로 10 만들면 받는 횟수
@@ -72,6 +74,8 @@ const $ = id => document.getElementById(id);
 let cs, pad, W, H;
 let grid = [], next = 5, moves = START_MOVES, score = 0, best = 0;
 let state = 'menu', phase = 'idle', chain = 0, popT = 0;
+let showRuns = null, showT = 0, pushShown = false;
+let dirty = null; // 이번에 움직인 칸들 (이 칸이 하나라도 끼어야 터짐), null이면 전부 검사
 let outgoing = [], popups = [], msgTimer = 0, lastT = 0, down = null, pushGain = 0;
 
 try { best = +localStorage.getItem('push10Best') || 0; } catch (e) {}
@@ -125,6 +129,7 @@ window.addEventListener('resize', resize);
 
 // 시작 판: 처음부터 터지는 줄이 없게
 function makeBoard() {
+  dirty = null;
   grid = [];
   for (let y = 0; y < N; y++) { grid.push([]); for (let x = 0; x < N; x++) grid[y].push(block(rnd())); }
   for (let k = 0; k < 500; k++) {
@@ -151,6 +156,7 @@ function findMatches() {
           if (j - i + 1 < MIN_RUN) break;
           const run = [];
           for (let k = i; k <= j; k++) run.push(get.id(k));
+          if (dirty && !run.some(id => dirty.has(id))) break;
           runs.push({ ids: run, dir: dir }); run.forEach(id => cells.add(id));
           break;
         }
@@ -159,35 +165,31 @@ function findMatches() {
   };
   for (let y = 0; y < N; y++) { const g = j => grid[y][j]; g.id = j => y * N + j; scan(g, 'H'); }
   for (let x = 0; x < N; x++) { const g = j => grid[j][x]; g.id = j => j * N + x; scan(g, 'V'); }
-  // ㄱ, ㄴ 모양(한 번 꺾인 모양)도 합이 10이면 터짐
-  // 연쇄(떨어진 블록끼리)에서는 ㄱㄴ을 안 셈: 끝없는 연쇄 방지
-  if (ALLOW_L && chain === 0) {
-    const D = [[1, 0], [0, 1], [-1, 0], [0, -1]];
-    const pairs = [[0, 1], [1, 2], [2, 3], [3, 0]];
+  // ㄱ, ㄴ 모양은 판의 네 모서리에서만: 꼭짓점에서 두 변을 따라 꺾인 모양
+  if (ALLOW_L) {
     const at = (x, y) => (x < 0 || y < 0 || x >= N || y >= N) ? null : grid[y][x];
-    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const corners = [[0, 0, [1, 0], [0, 1]], [N - 1, 0, [-1, 0], [0, 1]], [0, N - 1, [1, 0], [0, -1]], [N - 1, N - 1, [-1, 0], [0, -1]]];
+    for (const [x, y, d1, d2] of corners) {
       const c = grid[y][x];
       if (!c) continue;
-      for (const [p, q] of pairs) {
-        const d1 = D[p], d2 = D[q];
-        let s1 = c.n;
-        const arm1 = [];
-        for (let a = 1; a < N; a++) {
-          const b1 = at(x + d1[0] * a, y + d1[1] * a);
-          if (!b1) break;
-          s1 += b1.n; arm1.push((y + d1[1] * a) * N + (x + d1[0] * a));
-          if (s1 > 10) break;
-          let s2 = s1;
-          const arm2 = [];
-          for (let b = 1; b < N; b++) {
-            const b2 = at(x + d2[0] * b, y + d2[1] * b);
-            if (!b2) break;
-            s2 += b2.n; arm2.push((y + d2[1] * b) * N + (x + d2[0] * b));
-            if (s2 > 10) break;
-            if (s2 === 10) {
-              const ids = [y * N + x].concat(arm1, arm2);
-              runs.push({ ids: ids, dir: 'L' }); ids.forEach(id => cells.add(id));
-            }
+      let s1 = c.n;
+      const arm1 = [];
+      for (let a = 1; a < N; a++) {
+        const b1 = at(x + d1[0] * a, y + d1[1] * a);
+        if (!b1) break;
+        s1 += b1.n; arm1.push((y + d1[1] * a) * N + (x + d1[0] * a));
+        if (s1 > 10) break;
+        let s2 = s1;
+        const arm2 = [];
+        for (let b = 1; b < N; b++) {
+          const b2 = at(x + d2[0] * b, y + d2[1] * b);
+          if (!b2) break;
+          s2 += b2.n; arm2.push((y + d2[1] * b) * N + (x + d2[0] * b));
+          if (s2 > 10) break;
+          if (s2 === 10) {
+            const ids = [y * N + x].concat(arm1, arm2);
+            if (dirty && !ids.some(id => dirty.has(id))) continue;
+            runs.push({ ids: ids, dir: 'L', a1: arm1.length }); ids.forEach(id => cells.add(id));
           }
         }
       }
@@ -228,7 +230,9 @@ function push(side, idx) {
     for (let y = 0; y < N - 1; y++) { grid[y][idx] = grid[y + 1][idx]; grid[y][idx].oy += cs; }
     out.oy = cs; grid[N - 1][idx] = out;
   }
-  chain = 0; pushGain = 0;
+  chain = 0; pushGain = 0; pushShown = false;
+  dirty = new Set();
+  for (let k = 0; k < N; k++) dirty.add(side === 'L' || side === 'R' ? idx * N + k : k * N + idx);
   phase = 'slide';
 }
 
@@ -240,9 +244,14 @@ function checkMatches() {
     if (moves <= 0) gameOver();
     return;
   }
+  // 본 게임: 터지기 전에 잠깐 멈추고 왜 10인지 보여줌 (민 직후, 떨어져서 생긴 연쇄 모두)
+  if (!tut && SHOW_WHY && !pushShown) {
+    pushShown = true; showRuns = maximalRuns(m.runs); showT = SHOW_TIME; phase = 'show';
+    return;
+  }
   // 튜토리얼: 처음 터질 때 멈추고 왜 터지는지 보여줌
   if (tut && !tut.explained) {
-    tut.explained = true; tut.runs = m.runs; phase = 'explain';
+    tut.explained = true; tut.runs = maximalRuns(m.runs); phase = 'explain';
     clearTimeout(msgTimer); $('msg').textContent = '판을 눌러 계속';
     return;
   }
@@ -270,17 +279,19 @@ function checkMatches() {
 
 // 터진 자리: 위 블록이 내려오고 맨 위에서 새 블록이 떨어짐
 function dropDown() {
+  dirty = new Set(); // 떨어진 블록과 새 블록만 다음 검사 대상
+  pushShown = false;  // 떨어져서 생긴 10도 다시 보여줌
   for (let x = 0; x < N; x++) {
     let write = N - 1;
     for (let y = N - 1; y >= 0; y--) {
       const b = grid[y][x];
       if (b.pop > 0) continue;
-      if (write !== y) { b.oy -= (write - y) * cs; grid[write][x] = b; }
+      if (write !== y) { b.oy -= (write - y) * cs; grid[write][x] = b; dirty.add(write * N + x); }
       write--;
     }
     const missing = write + 1;
     for (let y = write; y >= 0; y--) grid[y][x] = null;
-    for (let y = write; y >= 0; y--) { const b = block(rnd()); b.oy = -(missing + 0.3) * cs; grid[y][x] = b; }
+    for (let y = write; y >= 0; y--) { const b = block(rnd()); b.oy = -(missing + 0.3) * cs; grid[y][x] = b; dirty.add(y * N + x); }
   }
   phase = 'fall';
 }
@@ -297,6 +308,7 @@ function local(e) {
 }
 cv.addEventListener('pointerdown', e => {
   if (tut && phase === 'explain') { endExplain(); down = null; return; }
+  if (phase === 'show') { showT = 0; down = null; return; }
   down = local(e);
 });
 cv.addEventListener('pointerup', e => {
@@ -331,9 +343,9 @@ const TUT = [
     board: [[9, 8, 6, 9], [8, 9, 1, 8], [7, 8, 7, 9], [9, 7, 3, 8]] },
   { side: 'R', idx: 0, text: '7+3처럼 2개짜리는 안 터져요.<br>0은 합은 그대로, 개수만 늘려줘요. 0을 끼워보세요!',
     board: [[3, 8, 0, 7], [9, 7, 9, 8], [8, 9, 7, 9], [7, 8, 8, 9]] },
-  { side: 'L', idx: 1, text: '이 버전은 ㄱ, ㄴ처럼 한 번 꺾인 모양도 돼요!<br>모서리를 돌아서 10을 만들어보세요.',
+  { side: 'L', idx: 1, text: '네 모서리에서는 ㄱ, ㄴ처럼 꺾인 모양도 돼요!<br>모서리를 돌아서 10을 만들어보세요.',
     board: [[4, 1, 6, 9], [6, 9, 7, 5], [6, 8, 8, 9], [9, 8, 7, 9]] },
-  { side: 'R', idx: 2, text: '5개 이상으로 10을 만들면 횟수 +1!<br>횟수가 다 떨어지면 게임이 끝나요.',
+  { side: 'R', idx: 2, text: '4개 이상으로 10을 만들면 횟수 +1!<br>횟수가 다 떨어지면 게임이 끝나요.',
     board: [[8, 9, 7, 1], [6, 9, 7, 1], [3, 9, 7, 9], [7, 9, 4, 1]] },
 ];
 let tut = null;
@@ -348,6 +360,7 @@ function startTutorial() {
 }
 
 function loadStep() {
+  dirty = null;
   const st = TUT[tut.step];
   grid = st.board.map(r => r.map(n => block(n)));
   phase = 'idle'; tut.hit = false; tut.explained = false; tut.runs = null;
@@ -395,6 +408,48 @@ function showPanel(html) {
   $('go').addEventListener('click', startGame);
   if ($('tut')) $('tut').addEventListener('click', startTutorial);
   $('go').focus();
+}
+
+/* 왜 터졌는지 보여주기: 터질 블록을 선으로 천천히 잇고 합계 말풍선 */
+const WHY_COLORS = ['#e2553f', '#3f8fe0', '#2f9e5a', '#9b6bd3'];
+function pathOf(r) {
+  if (r.dir !== 'L') return r.ids;
+  return r.ids.slice(1, 1 + r.a1).reverse().concat([r.ids[0]], r.ids.slice(1 + r.a1));
+}
+// 다른 줄에 통째로 포함되는 줄은 빼고 보여줌
+function maximalRuns(runs) {
+  const sorted = runs.slice().sort((a, b) => b.ids.length - a.ids.length), keep = [];
+  sorted.forEach(r => { if (!keep.some(k => r.ids.every(id => k.ids.includes(id)))) keep.push(r); });
+  return keep;
+}
+function drawWhy(runs, prog) {
+  const center = id => [pad + (id % N + 0.5) * cs, pad + (Math.floor(id / N) + 0.5) * cs];
+  runs.forEach((r, ri) => {
+    const col = WHY_COLORS[ri % WHY_COLORS.length], p = pathOf(r);
+    const pts = p.slice(0, Math.max(1, Math.ceil(p.length * prog))).map(center);
+    ctx.strokeStyle = col; ctx.globalAlpha = 0.45; ctx.lineWidth = cs * 0.3; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath(); pts.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.stroke();
+    ctx.globalAlpha = 1; ctx.lineWidth = 3;
+    pts.forEach(q => { ctx.beginPath(); ctx.arc(q[0], q[1], cs * 0.44, 0, Math.PI * 2); ctx.stroke(); });
+  });
+  if (prog < 1) return;
+  runs.forEach((r, ri) => {
+    if (ri >= 3) return; // 말풍선은 최대 3개까지만 (너무 많으면 판을 가림)
+    const col = WHY_COLORS[ri % WHY_COLORS.length], p = pathOf(r);
+    let label = p.map(id => grid[Math.floor(id / N)][id % N].n).join(' + ') + ' = 10';
+    if (r.ids.length >= BONUS_MIN) label += '  횟수 +1!';
+    ctx.font = Math.floor(cs * 0.36) + 'px Jua, sans-serif';
+    const tw = ctx.measureText(label).width + cs * 0.4, th = cs * 0.56;
+    const mid = center(p[Math.floor(p.length / 2)]);
+    let lx = mid[0], ly = mid[1] - cs * 0.85 - ri * th * 1.1;
+    if (ly - th / 2 < 2) ly = mid[1] + cs * 0.85 + ri * th * 1.1;
+    lx = Math.max(tw / 2 + 4, Math.min(W - tw / 2 - 4, lx));
+    ly = Math.max(th / 2 + 2, Math.min(H - th / 2 - 2, ly));
+    ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = col; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.roundRect(lx - tw / 2, ly - th / 2, tw, th, th / 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = col; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(label, lx, ly + 1);
+  });
 }
 
 /* 그리기 */
@@ -469,27 +524,8 @@ function draw() {
   }
   ctx.restore();
 
-  if (tut && phase === 'explain' && tut.runs) {
-    tut.runs.forEach(r => {
-      const xs = r.ids.map(id => id % N), ys = r.ids.map(id => Math.floor(id / N));
-      const x0 = pad + Math.min(...xs) * cs, y0 = pad + Math.min(...ys) * cs;
-      const x1 = pad + (Math.max(...xs) + 1) * cs, y1 = pad + (Math.max(...ys) + 1) * cs;
-      ctx.strokeStyle = '#e2553f'; ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.roundRect(x0 + 2, y0 + 2, x1 - x0 - 4, y1 - y0 - 4, cs * 0.2); ctx.stroke();
-      let label = r.ids.map(id => grid[Math.floor(id / N)][id % N].n).join(' + ') + ' = 10';
-      if (r.ids.length >= BONUS_MIN) label += '  횟수 +1!';
-      ctx.font = Math.floor(cs * 0.36) + 'px Jua, sans-serif';
-      const tw = ctx.measureText(label).width + cs * 0.4, th = cs * 0.56;
-      let lx, ly;
-      if (r.dir === 'H') { lx = (x0 + x1) / 2; ly = y0 > cs ? y0 - th * 0.7 : y1 + th * 0.7; }
-      else { ly = (y0 + y1) / 2; lx = x1 + tw / 2 + 6 < W ? x1 + tw / 2 + 6 : x0 - tw / 2 - 6; }
-      lx = Math.max(tw / 2 + 4, Math.min(W - tw / 2 - 4, lx));
-      ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = '#e2553f'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.roundRect(lx - tw / 2, ly - th / 2, tw, th, th / 2); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#e2553f'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(label, lx, ly + 1);
-    });
-  }
+  if (tut && phase === 'explain' && tut.runs) drawWhy(tut.runs, 1);
+  if (phase === 'show' && showRuns) drawWhy(showRuns, Math.min(1, (SHOW_TIME - showT) / 0.6));
 
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   popups.forEach(p => {
@@ -520,6 +556,7 @@ function loop(now) {
   if (state === 'play') {
     if ((phase === 'slide' || phase === 'fall') && settled()) checkMatches();
     else if (phase === 'pop') { popT -= dt; if (popT <= 0) dropDown(); }
+    else if (phase === 'show') { showT -= dt; if (showT <= 0) { showRuns = null; phase = 'slide'; } }
   }
   popups.forEach(p => p.t -= dt * 0.8);
   popups = popups.filter(p => p.t > 0);
@@ -533,7 +570,7 @@ function loop(now) {
 
 resize();
 makeBoard();
-showPanel('<h1>밀어서 10 ㄱㄴ</h1><p>바깥 화살표를 누르거나 줄을 스와이프하면<br>줄이 한 칸 밀리고, 끝에서 빠진 블록은 반대편으로 넘어가요.<br>가로나 세로로 3개 이상 붙은 합이 10이면 터져요.<br>ㄱ, ㄴ처럼 한 번 꺾인 모양도 돼요!<br>2개짜리는 안 돼요. 0을 끼워서 3개로 만들어요!<br>5개 이상으로 터뜨리면 횟수 +1, 횟수가 다 떨어지면 끝!</p><div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><button id="tut">튜토리얼</button><button id="go" style="background:#8b6b4a;box-shadow:0 4px 0 #5c432c">바로 시작</button></div>');
+showPanel('<h1>밀어서 10 ㄱㄴ</h1><p>바깥 화살표를 누르거나 줄을 스와이프하면<br>줄이 한 칸 밀리고, 끝에서 빠진 블록은 반대편으로 넘어가요.<br>가로나 세로로 3개 이상 붙은 합이 10이면 터져요.<br>네 모서리에서는 ㄱ, ㄴ처럼 꺾인 모양도 돼요!<br>방금 움직인 블록이 끼어 있어야 터져요.<br>2개짜리는 안 돼요. 0을 끼워서 3개로 만들어요!<br>4개 이상으로 터뜨리면 횟수 +1, 횟수가 다 떨어지면 끝!</p><div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><button id="tut">튜토리얼</button><button id="go" style="background:#8b6b4a;box-shadow:0 4px 0 #5c432c">바로 시작</button></div>');
 requestAnimationFrame(loop);
 }
 </script>

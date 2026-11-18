@@ -234,6 +234,7 @@ function checkMatches() {
 
 // 터진 자리: 위 블록이 내려오고 맨 위에서 새 블록이 떨어짐
 function dropDown() {
+  const fresh = new Set(); // 이번에 새로 생긴 블록 칸
   for (let x = 0; x < N; x++) {
     let write = N - 1;
     for (let y = N - 1; y >= 0; y--) {
@@ -244,7 +245,14 @@ function dropDown() {
     }
     const missing = write + 1;
     for (let y = write; y >= 0; y--) grid[y][x] = null;
-    for (let y = write; y >= 0; y--) { const b = block(rnd()); b.oy = -(missing + 0.3) * cs; grid[y][x] = b; }
+    for (let y = write; y >= 0; y--) { const b = block(rnd()); b.oy = -(missing + 0.3) * cs; grid[y][x] = b; fresh.add(y * N + x); }
+  }
+  // 새로 생긴 블록끼리만으로 10이 되면 그 블록 숫자를 다시 뽑음
+  // (떨어진 블록이 원래 있던 블록과 만나 10이 되는 건 그대로 둠)
+  for (let k = 0; k < 50; k++) {
+    const bad = findMatches().runs.filter(r => r.ids.every(id => fresh.has(id)));
+    if (!bad.length) break;
+    bad.forEach(r => r.ids.forEach(id => { grid[Math.floor(id / N)][id % N].n = rnd(); }));
   }
   phase = 'fall';
 }
