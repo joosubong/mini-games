@@ -45,11 +45,13 @@ a.sq{aspect-ratio:5/4;min-height:max-content;display:flex;flex-direction:column;
 .head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
 .head h1{margin:0}
 .meta{color:var(--sub);font-size:14px;margin-bottom:16px}
-.play{margin:0 -16px;background:var(--card);border-radius:16px;overflow:hidden;box-shadow:0 3px 0 var(--line)}
-.play iframe{display:block;width:100%;height:min(calc(100vh - 64px),860px);height:min(calc(100svh - 64px),860px);border:0;background:var(--bg)}
-main.game{padding-top:12px}
-.meta.under{margin:10px 0 0}
-.full{display:inline-block;margin-top:12px;font-family:"Jua",sans-serif;font-size:18px;background:#e2553f;color:#fff;text-decoration:none;padding:8px 18px;border-radius:999px}
+.btns{display:flex;gap:10px;margin:4px 0 8px}
+.btn{flex:1;display:flex;align-items:center;justify-content:center;min-height:58px;font-family:"Jua",sans-serif;font-size:22px;background:#e2553f;color:#fff;text-decoration:none;border-radius:16px;box-shadow:0 4px 0 #a83727}
+.btn.sub2{background:#8b6b4a;box-shadow:0 4px 0 #5e4630}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 #a83727}
+.btn:focus-visible{outline:3px solid #7cc36a;outline-offset:3px}
+.howto{background:var(--card);border-radius:16px;padding:4px 18px 8px;margin-top:14px;box-shadow:0 3px 0 var(--line)}
+.howto h2{margin-top:12px}
 .prose p{margin-bottom:10px}
 .prose ul{margin:0 0 10px 20px}
 .back{display:inline-block;margin-top:28px;font-family:"Jua",sans-serif;font-size:18px}
@@ -57,8 +59,7 @@ main.game{padding-top:12px}
 .ad{margin:20px 0;min-height:100px;text-align:center}
 footer{margin-top:28px;font-size:13px;color:var(--sub)}
 footer a{color:var(--sub)}
-@media (min-width:640px){.play{margin:0}}
-@media (max-width:480px){.sq .name{font-size:17px}.sub{font-size:12px}a.sq{padding:12px}.tag{font-size:12px;padding:2px 8px}.play{border-radius:0}}
+@media (max-width:480px){.sq .name{font-size:17px}.sub{font-size:12px}a.sq{padding:12px}.tag{font-size:12px;padding:2px 8px}}
 @media (prefers-reduced-motion:reduce){a.card{transition:none}}
 </style>
 </head>

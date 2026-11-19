@@ -27,5 +27,6 @@ https://joosubong.github.io/mini-games/
 - `pages/` 소개, 개인정보처리방침 원본
 - `build.js` 사이트 만드는 스크립트 (Node 만 있으면 됨)
 - `docs/` 만들어진 사이트 (GitHub Pages, Cloudflare Pages 가 여기를 공개)
+  - `docs/games/<slug>/` 게임 소개 페이지, `docs/games/<slug>/play.html` 게임만 나오는 화면
 - `assets/ranking.js` 게임들이 같이 쓰는 랭킹 화면 (빌드 때 `docs/ranking.js` 로 복사)
 - `functions/` Cloudflare Pages Functions (랭킹 API, D1 바인딩 이름 `DB`)

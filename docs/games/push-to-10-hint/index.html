@@ -45,11 +45,13 @@ a.sq{aspect-ratio:5/4;min-height:max-content;display:flex;flex-direction:column;
 .head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
 .head h1{margin:0}
 .meta{color:var(--sub);font-size:14px;margin-bottom:16px}
-.play{margin:0 -16px;background:var(--card);border-radius:16px;overflow:hidden;box-shadow:0 3px 0 var(--line)}
-.play iframe{display:block;width:100%;height:min(calc(100vh - 64px),860px);height:min(calc(100svh - 64px),860px);border:0;background:var(--bg)}
-main.game{padding-top:12px}
-.meta.under{margin:10px 0 0}
-.full{display:inline-block;margin-top:12px;font-family:"Jua",sans-serif;font-size:18px;background:#e2553f;color:#fff;text-decoration:none;padding:8px 18px;border-radius:999px}
+.btns{display:flex;gap:10px;margin:4px 0 8px}
+.btn{flex:1;display:flex;align-items:center;justify-content:center;min-height:58px;font-family:"Jua",sans-serif;font-size:22px;background:#e2553f;color:#fff;text-decoration:none;border-radius:16px;box-shadow:0 4px 0 #a83727}
+.btn.sub2{background:#8b6b4a;box-shadow:0 4px 0 #5e4630}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 #a83727}
+.btn:focus-visible{outline:3px solid #7cc36a;outline-offset:3px}
+.howto{background:var(--card);border-radius:16px;padding:4px 18px 8px;margin-top:14px;box-shadow:0 3px 0 var(--line)}
+.howto h2{margin-top:12px}
 .prose p{margin-bottom:10px}
 .prose ul{margin:0 0 10px 20px}
 .back{display:inline-block;margin-top:28px;font-family:"Jua",sans-serif;font-size:18px}
@@ -57,19 +59,22 @@ main.game{padding-top:12px}
 .ad{margin:20px 0;min-height:100px;text-align:center}
 footer{margin-top:28px;font-size:13px;color:var(--sub)}
 footer a{color:var(--sub)}
-@media (min-width:640px){.play{margin:0}}
-@media (max-width:480px){.sq .name{font-size:17px}.sub{font-size:12px}a.sq{padding:12px}.tag{font-size:12px;padding:2px 8px}.play{border-radius:0}}
+@media (max-width:480px){.sq .name{font-size:17px}.sub{font-size:12px}a.sq{padding:12px}.tag{font-size:12px;padding:2px 8px}}
 @media (prefers-reduced-motion:reduce){a.card{transition:none}}
 </style>
 </head>
 <body>
-<main class="game">
+<main>
 <div class="head"><h1>밀어서 10 힌트</h1><span class="tag try">실험 중</span></div>
-<div class="play"><iframe src="game.html" title="밀어서 10 힌트 게임" allow="fullscreen" loading="eager"></iframe></div>
-<p class="meta under">블록을 톡 누르면 같은 숫자 표시, 3개만 지워도 횟수 +1</p>
-<a class="full" href="game.html">전체 화면으로 하기</a>
-<h2>하는 법</h2>
-<div class="prose"><p>기본 규칙은 밀어서 10과 같아요. 줄을 밀어서 3개 이상 붙은 합을 10으로 만들면 터져요. 블록을 톡 누르면 판 위의 같은 숫자가 검게 표시돼서 계획 세우기가 쉬워요. 이 버전은 3개만 지워도 횟수가 1번 늘어나요.</p></div>
+<p class="meta">블록을 톡 누르면 같은 숫자 표시, 3개만 지워도 횟수 +1</p>
+<div class="btns"><a class="btn" href="play.html">게임하기</a><a class="btn sub2" href="#howto" id="howtoBtn" aria-controls="howto" aria-expanded="false">하는 법</a></div>
+<section class="howto prose" id="howto" hidden><h2>하는 법</h2>
+<p>기본 규칙은 밀어서 10과 같아요. 줄을 밀어서 3개 이상 붙은 합을 10으로 만들면 터져요. 블록을 톡 누르면 판 위의 같은 숫자가 검게 표시돼서 계획 세우기가 쉬워요. 이 버전은 3개만 지워도 횟수가 1번 늘어나요.</p></section>
+<noscript><style>#howto[hidden]{display:block}</style></noscript>
+<script>(function(){var b=document.getElementById('howtoBtn'),s=document.getElementById('howto');
+function set(o){s.hidden=!o;b.setAttribute('aria-expanded',o)}
+if(location.hash==='#howto')set(true);
+b.addEventListener('click',function(e){e.preventDefault();set(s.hidden);if(!s.hidden)s.scrollIntoView({behavior:'smooth',block:'nearest'})});})();</script>
 <h2>만든 이야기</h2>
 <div class="prose"><p>숫자가 많아지면 어디에 뭐가 있는지 찾기 힘들다는 생각이 들어서 만들었어요. 같은 숫자를 한눈에 볼 수 있으면 훨씬 덜 답답할 것 같았어요. 힌트가 있는 만큼 횟수를 받기 쉽게 바꿔서 어떤 느낌인지 실험 중이에요.</p></div>
 <a class="back" href="../../">← 목록으로 돌아가기</a>

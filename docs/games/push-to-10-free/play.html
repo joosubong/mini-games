@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<script>(function(){var p=function(e){e.preventDefault()};['gesturestart','gesturechange','gestureend'].forEach(function(t){document.addEventListener(t,p,{passive:false})});document.addEventListener('touchmove',function(e){if(e.touches.length>1)e.preventDefault()},{passive:false});})();</script>
+<title>밀어서 10 자유 끌기 게임하기 | 부엌강아지 미니게임 실험실</title>
+<link rel="canonical" href="https://joosubong.github.io/mini-games/games/push-to-10-free/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light dark;--bg:light-dark(#fdf3e1,#2a2018)}
+html,body{margin:0;padding:0;height:100%;overflow:hidden;overscroll-behavior:none;touch-action:none;background:var(--bg);-webkit-text-size-adjust:100%;text-size-adjust:100%}
+iframe{position:fixed;top:0;left:0;display:block;width:100%;height:100%;height:100dvh;border:0;background:var(--bg)}
+.exit{position:fixed;z-index:10;left:calc(8px + env(safe-area-inset-left));bottom:calc(8px + env(safe-area-inset-bottom));font:15px/1 "Jua",system-ui,sans-serif;color:#fff;background:rgba(74,52,38,.6);text-decoration:none;padding:8px 12px;border-radius:999px;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.exit:focus-visible{outline:3px solid #e2553f;outline-offset:2px}
+</style>
+</head>
+<body>
+<iframe src="game.html" title="밀어서 10 자유 끌기 게임" allow="fullscreen" loading="eager"></iframe>
+<a class="exit" href="./">나가기</a>
+<script>document.querySelector('iframe').addEventListener('load',function(){try{this.contentWindow.focus()}catch(e){}});</script>
+
+</body>
+</html>

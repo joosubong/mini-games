@@ -92,11 +92,13 @@ a.sq{aspect-ratio:5/4;min-height:max-content;display:flex;flex-direction:column;
 .head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
 .head h1{margin:0}
 .meta{color:var(--sub);font-size:14px;margin-bottom:16px}
-.play{margin:0 -16px;background:var(--card);border-radius:16px;overflow:hidden;box-shadow:0 3px 0 var(--line)}
-.play iframe{display:block;width:100%;height:min(calc(100vh - 64px),860px);height:min(calc(100svh - 64px),860px);border:0;background:var(--bg)}
-main.game{padding-top:12px}
-.meta.under{margin:10px 0 0}
-.full{display:inline-block;margin-top:12px;font-family:"Jua",sans-serif;font-size:18px;background:#e2553f;color:#fff;text-decoration:none;padding:8px 18px;border-radius:999px}
+.btns{display:flex;gap:10px;margin:4px 0 8px}
+.btn{flex:1;display:flex;align-items:center;justify-content:center;min-height:58px;font-family:"Jua",sans-serif;font-size:22px;background:#e2553f;color:#fff;text-decoration:none;border-radius:16px;box-shadow:0 4px 0 #a83727}
+.btn.sub2{background:#8b6b4a;box-shadow:0 4px 0 #5e4630}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 #a83727}
+.btn:focus-visible{outline:3px solid #7cc36a;outline-offset:3px}
+.howto{background:var(--card);border-radius:16px;padding:4px 18px 8px;margin-top:14px;box-shadow:0 3px 0 var(--line)}
+.howto h2{margin-top:12px}
 .prose p{margin-bottom:10px}
 .prose ul{margin:0 0 10px 20px}
 .back{display:inline-block;margin-top:28px;font-family:"Jua",sans-serif;font-size:18px}
@@ -104,8 +106,7 @@ main.game{padding-top:12px}
 .ad{margin:20px 0;min-height:100px;text-align:center}
 footer{margin-top:28px;font-size:13px;color:var(--sub)}
 footer a{color:var(--sub)}
-@media (min-width:640px){.play{margin:0}}
-@media (max-width:480px){.sq .name{font-size:17px}.sub{font-size:12px}a.sq{padding:12px}.tag{font-size:12px;padding:2px 8px}.play{border-radius:0}}
+@media (max-width:480px){.sq .name{font-size:17px}.sub{font-size:12px}a.sq{padding:12px}.tag{font-size:12px;padding:2px 8px}}
 @media (prefers-reduced-motion:reduce){a.card{transition:none}}`;
 
 // 아이폰 사파리는 user-scalable=no 를 무시해서, 두 손가락 확대를 직접 막는다 (두 번 톡 확대는 CSS touch-action 으로 막음)
@@ -236,26 +237,33 @@ function paragraphs(text) {
 function buildGame(g) {
   const base = '../../';
   const tagCls = STATUS_CLASS[g.status] ? ' ' + STATUS_CLASS[g.status] : '';
-  // 폰에서 게임이 한 화면에 들어오게: 사이트 제목 없이 게임 제목 바로 아래 게임, 설명은 게임 아래
+  // 소개 페이지: 게임은 넣지 않고 [게임하기] [하는 법] 버튼으로 시작
+  const howTo = g.howTo ? `<a class="btn sub2" href="#howto" id="howtoBtn" aria-controls="howto" aria-expanded="false">하는 법</a>` : '';
   const body = `<div class="head"><h1>${esc(g.title)}</h1><span class="tag${tagCls}">${esc(g.status)}</span></div>
-<div class="play"><iframe src="game.html" title="${esc(g.title)} 게임" allow="fullscreen" loading="eager"></iframe></div>
-<p class="meta under">${esc(summaryText(g))}</p>
-<a class="full" href="game.html">전체 화면으로 하기</a>
+<p class="meta">${esc(summaryText(g))}</p>
+<div class="btns"><a class="btn" href="play.html">게임하기</a>${howTo}</div>
+${g.howTo ? `<section class="howto prose" id="howto" hidden><h2>하는 법</h2>
+${paragraphs(g.howTo)}</section>
+<noscript><style>#howto[hidden]{display:block}</style></noscript>
+<script>(function(){var b=document.getElementById('howtoBtn'),s=document.getElementById('howto');
+function set(o){s.hidden=!o;b.setAttribute('aria-expanded',o)}
+if(location.hash==='#howto')set(true);
+b.addEventListener('click',function(e){e.preventDefault();set(s.hidden);if(!s.hidden)s.scrollIntoView({behavior:'smooth',block:'nearest'})});})();</script>` : ''}
 ${g.ranking ? `<div class="ranking" id="ranking"></div>
 <script src="${base}ranking.js"></script>
 <script>Ranking.board(document.getElementById('ranking'), ${JSON.stringify(g.slug)});</script>` : ''}
 ${adSlot()}
-${g.howTo ? `<h2>하는 법</h2>\n<div class="prose">${paragraphs(g.howTo)}</div>` : ''}
-${g.story ? `<h2>만든 이야기</h2>\n<div class="prose">${paragraphs(g.story)}</div>` : ''}
+${g.story ? `<h2>만든 이야기</h2>
+<div class="prose">${paragraphs(g.story)}</div>` : ''}
 <a class="back" href="${base}">← 목록으로 돌아가기</a>`;
   write(`games/${g.slug}/index.html`, page({
     title: `${g.title} | ${config.siteName}`,
     desc: summaryText(g),
     canonical: `${siteUrl}games/${g.slug}/`,
-    mainClass: 'game',
     base,
     body,
   }));
+  buildPlay(g);
   // 게임 파일은 그대로 복사. 랭킹이 켜진 게임만 </head> 앞에 랭킹 스크립트 한 줄을 넣는다
   let html = fs.readFileSync(path.join(ROOT, 'games', g.slug, 'game.html'), 'utf8');
   if (g.ranking) {
@@ -263,6 +271,39 @@ ${g.story ? `<h2>만든 이야기</h2>\n<div class="prose">${paragraphs(g.story)
     html = html.replace('</head>', `<script src="${base}ranking.js"></script>\n</head>`);
   }
   write(`games/${g.slug}/game.html`, html);
+}
+
+// 게임하기 페이지: 게임만 화면에 꽉 차게, 구석에 [나가기] 하나
+// 게임은 game.html 을 화면 전체 크기 iframe 으로 열어서, 따로 열었을 때와 크기가 같다
+const PLAY_CSS = `:root{color-scheme:light dark;--bg:light-dark(#fdf3e1,#2a2018)}
+html,body{margin:0;padding:0;height:100%;overflow:hidden;overscroll-behavior:none;touch-action:none;background:var(--bg);-webkit-text-size-adjust:100%;text-size-adjust:100%}
+iframe{position:fixed;top:0;left:0;display:block;width:100%;height:100%;height:100dvh;border:0;background:var(--bg)}
+.exit{position:fixed;z-index:10;left:calc(8px + env(safe-area-inset-left));bottom:calc(8px + env(safe-area-inset-bottom));font:15px/1 "Jua",system-ui,sans-serif;color:#fff;background:rgba(74,52,38,.6);text-decoration:none;padding:8px 12px;border-radius:999px;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.exit:focus-visible{outline:3px solid #e2553f;outline-offset:2px}`;
+
+function buildPlay(g) {
+  write(`games/${g.slug}/play.html`, `<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<script>${NO_ZOOM}</script>
+<title>${esc(g.title)} 게임하기 | ${esc(config.siteName)}</title>
+<link rel="canonical" href="${esc(siteUrl)}games/${g.slug}/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<style>
+${PLAY_CSS}
+</style>
+</head>
+<body>
+<iframe src="game.html" title="${esc(g.title)} 게임" allow="fullscreen" loading="eager"></iframe>
+<a class="exit" href="./">나가기</a>
+<script>document.querySelector('iframe').addEventListener('load',function(){try{this.contentWindow.focus()}catch(e){}});</script>
+${analytics()}
+</body>
+</html>
+`);
 }
 
 // 예전 주소 (루트의 <slug>.html) 에서 새 게임 페이지로 이동

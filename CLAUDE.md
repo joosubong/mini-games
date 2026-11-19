@@ -4,6 +4,7 @@
 - `config.json`: 사이트 설정. `adsEnabled`, `adsenseClient`, `adsenseSlot`, `analyticsToken`, `contactEmail`(문의 메일, 비우면 안 나옴), `sections`(목록 섹션 순서와 모양: `grid2`, `grid3`, `list`)
 - `games.json`: 게임 목록. 항목 순서가 섹션 안 카드 순서
 - `games/<slug>/game.html`: 게임 원본
+- 빌드가 만드는 게임 페이지: `games/<slug>/` 소개 페이지 (게임하기, 하는 법 버튼, 랭킹, 만든 이야기, 광고 자리), `games/<slug>/play.html` 게임하기 페이지 (게임만 화면 가득, 구석에 나가기 버튼). 모두 build.js 템플릿에서 고친다
 - `pages/about.html`, `pages/privacy.html`: 본문만 적는 원본. `<!-- if:ads -->`, `<!-- if:analytics -->` ... `<!-- endif -->` 는 설정이 켜졌을 때만 남음. `<!-- mail -->` 자리에 문의 메일 링크가 들어감
 - `build.js`: Node 기본 모듈만 사용. 외부 패키지 추가 금지
 - `docs/`: 빌드 결과. 손으로 고치지 말고 `node build.js` 로 다시 만든 뒤 커밋

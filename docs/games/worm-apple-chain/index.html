@@ -45,11 +45,13 @@ a.sq{aspect-ratio:5/4;min-height:max-content;display:flex;flex-direction:column;
 .head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
 .head h1{margin:0}
 .meta{color:var(--sub);font-size:14px;margin-bottom:16px}
-.play{margin:0 -16px;background:var(--card);border-radius:16px;overflow:hidden;box-shadow:0 3px 0 var(--line)}
-.play iframe{display:block;width:100%;height:min(calc(100vh - 64px),860px);height:min(calc(100svh - 64px),860px);border:0;background:var(--bg)}
-main.game{padding-top:12px}
-.meta.under{margin:10px 0 0}
-.full{display:inline-block;margin-top:12px;font-family:"Jua",sans-serif;font-size:18px;background:#e2553f;color:#fff;text-decoration:none;padding:8px 18px;border-radius:999px}
+.btns{display:flex;gap:10px;margin:4px 0 8px}
+.btn{flex:1;display:flex;align-items:center;justify-content:center;min-height:58px;font-family:"Jua",sans-serif;font-size:22px;background:#e2553f;color:#fff;text-decoration:none;border-radius:16px;box-shadow:0 4px 0 #a83727}
+.btn.sub2{background:#8b6b4a;box-shadow:0 4px 0 #5e4630}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 #a83727}
+.btn:focus-visible{outline:3px solid #7cc36a;outline-offset:3px}
+.howto{background:var(--card);border-radius:16px;padding:4px 18px 8px;margin-top:14px;box-shadow:0 3px 0 var(--line)}
+.howto h2{margin-top:12px}
 .prose p{margin-bottom:10px}
 .prose ul{margin:0 0 10px 20px}
 .back{display:inline-block;margin-top:28px;font-family:"Jua",sans-serif;font-size:18px}
@@ -57,22 +59,25 @@ main.game{padding-top:12px}
 .ad{margin:20px 0;min-height:100px;text-align:center}
 footer{margin-top:28px;font-size:13px;color:var(--sub)}
 footer a{color:var(--sub)}
-@media (min-width:640px){.play{margin:0}}
-@media (max-width:480px){.sq .name{font-size:17px}.sub{font-size:12px}a.sq{padding:12px}.tag{font-size:12px;padding:2px 8px}.play{border-radius:0}}
+@media (max-width:480px){.sq .name{font-size:17px}.sub{font-size:12px}a.sq{padding:12px}.tag{font-size:12px;padding:2px 8px}}
 @media (prefers-reduced-motion:reduce){a.card{transition:none}}
 </style>
 </head>
 <body>
-<main class="game">
+<main>
 <div class="head"><h1>애벌레 사과</h1><span class="tag">진행 중</span></div>
-<div class="play"><iframe src="game.html" title="애벌레 사과 게임" allow="fullscreen" loading="eager"></iframe></div>
-<p class="meta under">6개 +2초, 9개 +3초, 12개 +4초, 사과 3000점 파랑 추가, 사과 8000점 분홍 추가, 사과 20000점 주황 추가</p>
-<a class="full" href="game.html">전체 화면으로 하기</a>
+<p class="meta">6개 +2초, 9개 +3초, 12개 +4초, 사과 3000점 파랑 추가, 사과 8000점 분홍 추가, 사과 20000점 주황 추가</p>
+<div class="btns"><a class="btn" href="play.html">게임하기</a><a class="btn sub2" href="#howto" id="howtoBtn" aria-controls="howto" aria-expanded="false">하는 법</a></div>
+<section class="howto prose" id="howto" hidden><h2>하는 법</h2>
+<p>같은 색 사과를 손가락으로 3개 이상 이어주세요. 애벌레가 줄을 따라가며 사과를 먹어요. 6개 이상 이으면 시간이 늘어나고, 길게 이을수록 더 많이 늘어나요. 점수가 오르면 파랑, 분홍, 주황 사과가 차례로 나와서 점점 어려워져요.</p></section>
+<noscript><style>#howto[hidden]{display:block}</style></noscript>
+<script>(function(){var b=document.getElementById('howtoBtn'),s=document.getElementById('howto');
+function set(o){s.hidden=!o;b.setAttribute('aria-expanded',o)}
+if(location.hash==='#howto')set(true);
+b.addEventListener('click',function(e){e.preventDefault();set(s.hidden);if(!s.hidden)s.scrollIntoView({behavior:'smooth',block:'nearest'})});})();</script>
 <div class="ranking" id="ranking"></div>
 <script src="../../ranking.js"></script>
 <script>Ranking.board(document.getElementById('ranking'), "worm-apple-chain");</script>
-<h2>하는 법</h2>
-<div class="prose"><p>같은 색 사과를 손가락으로 3개 이상 이어주세요. 애벌레가 줄을 따라가며 사과를 먹어요. 6개 이상 이으면 시간이 늘어나고, 길게 이을수록 더 많이 늘어나요. 점수가 오르면 파랑, 분홍, 주황 사과가 차례로 나와서 점점 어려워져요.</p></div>
 <h2>만든 이야기</h2>
 <div class="prose"><p>애벌레 사과 탈출을 접고 나서, 더 단순하게 같은 색만 이어먹는 방식으로 다시 만들었어요. 해보니 손이 계속 가서 이쪽을 키우기로 했어요. 점수에 따라 사과 색이 늘어나게 해서 뒤로 갈수록 긴장감이 생기도록 했어요.</p></div>
 <a class="back" href="../../">← 목록으로 돌아가기</a>
