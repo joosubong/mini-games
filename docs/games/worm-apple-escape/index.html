@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>애벌레 사과 탈출 | 부엌강아지 미니게임 실험실</title>
+<meta name="description" content="사과 색마다 갈 수 있는 방향이 달라요. 길을 그려 애벌레를 탈출시켜요.">
+<link rel="canonical" href="https://joosubong.github.io/mini-games/games/worm-apple-escape/">
+<meta property="og:title" content="애벌레 사과 탈출 | 부엌강아지 미니게임 실험실">
+<meta property="og:description" content="사과 색마다 갈 수 있는 방향이 달라요. 길을 그려 애벌레를 탈출시켜요.">
+<meta property="og:url" content="https://joosubong.github.io/mini-games/games/worm-apple-escape/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light dark;--bg:light-dark(#fdf3e1,#2a2018);--ink:light-dark(#4a3426,#f6e7d0);--card:light-dark(#fffaf0,#3a2c20);--line:light-dark(#e4cfae,#5a4430);--sub:light-dark(#7a6250,#cbb79f)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+main{max-width:640px;margin:0 auto;padding:32px 16px 48px}
+a{color:inherit}
+h1{font-family:"Jua",sans-serif;font-size:34px;line-height:1.1;margin-bottom:8px}
+h2{font-family:"Jua",sans-serif;font-size:24px;line-height:1.2;margin:28px 0 8px}
+.lead{color:var(--sub);margin-bottom:24px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.three a.sq{aspect-ratio:auto;min-height:150px}
+.list{display:grid;gap:14px;margin-bottom:14px}
+a.card{display:block;text-decoration:none;color:inherit;background:var(--card);border-radius:16px;padding:16px 18px;box-shadow:0 3px 0 var(--line);transition:transform .15s}
+a.card:hover{transform:translateY(-2px)}
+a.card:focus-visible{outline:3px solid #e2553f;outline-offset:3px}
+a.sq{aspect-ratio:5/4;min-height:max-content;display:flex;flex-direction:column;justify-content:space-between;padding:14px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px}
+.name{font-family:"Jua",sans-serif;font-size:22px;line-height:1.2}
+.sq .name{font-size:20px}
+.sub{display:block;font-family:"Jua",sans-serif;font-size:14px;line-height:1.35;color:var(--sub);margin-top:4px}
+.ln{display:flex;align-items:center;gap:4px;white-space:nowrap}
+.ap{width:18px;height:18px;flex:none}
+.tag{font-size:13px;padding:2px 10px;border-radius:999px;white-space:nowrap;background:#e2553f;color:#fff;align-self:flex-start}
+.tag.try{background:#8b6b4a}
+.tag.old{background:#b3a593}
+.desc{color:var(--sub);font-size:15px}
+.home{display:inline-block;font-family:"Jua",sans-serif;font-size:17px;color:var(--sub);text-decoration:none;margin-bottom:18px}
+.home:hover{color:var(--ink)}
+.head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.head h1{margin:0}
+.meta{color:var(--sub);font-size:14px;margin-bottom:16px}
+.play{margin:0 -16px;background:var(--card);border-radius:16px;overflow:hidden;box-shadow:0 3px 0 var(--line)}
+.play iframe{display:block;width:100%;height:min(calc(100svh - 40px),860px);border:0;background:var(--bg)}
+.full{display:inline-block;margin-top:12px;font-family:"Jua",sans-serif;font-size:18px;background:#e2553f;color:#fff;text-decoration:none;padding:8px 18px;border-radius:999px}
+.prose p{margin-bottom:10px}
+.prose ul{margin:0 0 10px 20px}
+.back{display:inline-block;margin-top:28px;font-family:"Jua",sans-serif;font-size:18px}
+.ad{margin:20px 0;min-height:100px;text-align:center}
+footer{margin-top:28px;font-size:13px;color:var(--sub)}
+footer a{color:var(--sub)}
+@media (min-width:640px){.play{margin:0}}
+@media (max-width:480px){.sq .name{font-size:17px}.sub{font-size:12px}a.sq{padding:12px}.tag{font-size:12px;padding:2px 8px}.play{border-radius:0}}
+@media (prefers-reduced-motion:reduce){a.card{transition:none}}
+</style>
+</head>
+<body>
+<main>
+<a class="home" href="../../">부엌강아지 미니게임 실험실</a>
+<div class="head"><h1>애벌레 사과 탈출</h1><span class="tag old">접은 아이디어</span></div>
+<p class="meta">사과 색마다 갈 수 있는 방향이 달라요. 길을 그려 애벌레를 탈출시켜요.</p>
+<div class="play"><iframe src="game.html" title="애벌레 사과 탈출 게임" allow="fullscreen" loading="eager"></iframe></div>
+<a class="full" href="game.html">전체 화면으로 하기</a>
+<h2>하는 법</h2>
+<div class="prose"><p>왼쪽 구멍의 애벌레부터 오른쪽 나비 출구까지 손가락으로 길을 그려주세요. 빨간 사과는 아무 방향, 초록 사과는 직진만, 노란 사과는 꼭 꺾어야 해요. 썩은 사과는 지나갈 수 없어요. 사과를 많이 먹을수록 점수가 올라가고, 탈출할 때마다 시간이 늘어나요.</p></div>
+<h2>만든 이야기</h2>
+<div class="prose"><p>애벌레 사과의 첫 번째 아이디어였어요. 색마다 규칙이 달라서 생각할 거리가 많았지만, 빠르게 하기에는 머리가 너무 복잡했어요. 그래서 같은 색만 이어먹는 단순한 방식으로 바꾸고 이건 접었어요.</p></div>
+<a class="back" href="../../">← 목록으로 돌아가기</a>
+<footer>만든 사람: 부엌강아지 · <a href="../../about.html">소개</a> · <a href="../../privacy.html">개인정보처리방침</a></footer>
+</main>
+</body>
+</html>

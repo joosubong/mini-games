@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>부엌강아지 미니게임 실험실</title>
+<meta name="description" content="아이디어를 바로 만들어보고 해본 게임들이에요. 잘 된 것도, 접은 것도 같이 올려둬요.">
+<link rel="canonical" href="https://joosubong.github.io/mini-games/">
+<meta property="og:title" content="부엌강아지 미니게임 실험실">
+<meta property="og:description" content="아이디어를 바로 만들어보고 해본 게임들이에요. 잘 된 것도, 접은 것도 같이 올려둬요.">
+<meta property="og:url" content="https://joosubong.github.io/mini-games/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
 <style>
@@ -11,12 +16,14 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
 main{max-width:640px;margin:0 auto;padding:32px 16px 48px}
+a{color:inherit}
 h1{font-family:"Jua",sans-serif;font-size:34px;line-height:1.1;margin-bottom:8px}
+h2{font-family:"Jua",sans-serif;font-size:24px;line-height:1.2;margin:28px 0 8px}
 .lead{color:var(--sub);margin-bottom:24px}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:14px}
 .grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
 .three a.sq{aspect-ratio:auto;min-height:150px}
-.list{display:grid;gap:14px}
+.list{display:grid;gap:14px;margin-bottom:14px}
 a.card{display:block;text-decoration:none;color:inherit;background:var(--card);border-radius:16px;padding:16px 18px;box-shadow:0 3px 0 var(--line);transition:transform .15s}
 a.card:hover{transform:translateY(-2px)}
 a.card:focus-visible{outline:3px solid #e2553f;outline-offset:3px}
@@ -31,64 +38,77 @@ a.sq{aspect-ratio:5/4;min-height:max-content;display:flex;flex-direction:column;
 .tag.try{background:#8b6b4a}
 .tag.old{background:#b3a593}
 .desc{color:var(--sub);font-size:15px}
+.home{display:inline-block;font-family:"Jua",sans-serif;font-size:17px;color:var(--sub);text-decoration:none;margin-bottom:18px}
+.home:hover{color:var(--ink)}
+.head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.head h1{margin:0}
+.meta{color:var(--sub);font-size:14px;margin-bottom:16px}
+.play{margin:0 -16px;background:var(--card);border-radius:16px;overflow:hidden;box-shadow:0 3px 0 var(--line)}
+.play iframe{display:block;width:100%;height:min(calc(100svh - 40px),860px);border:0;background:var(--bg)}
+.full{display:inline-block;margin-top:12px;font-family:"Jua",sans-serif;font-size:18px;background:#e2553f;color:#fff;text-decoration:none;padding:8px 18px;border-radius:999px}
+.prose p{margin-bottom:10px}
+.prose ul{margin:0 0 10px 20px}
+.back{display:inline-block;margin-top:28px;font-family:"Jua",sans-serif;font-size:18px}
+.ad{margin:20px 0;min-height:100px;text-align:center}
 footer{margin-top:28px;font-size:13px;color:var(--sub)}
-@media (max-width:480px){.sq .name{font-size:17px}.sub{font-size:12px}a.sq{padding:12px}.tag{font-size:12px;padding:2px 8px}}
+footer a{color:var(--sub)}
+@media (min-width:640px){.play{margin:0}}
+@media (max-width:480px){.sq .name{font-size:17px}.sub{font-size:12px}a.sq{padding:12px}.tag{font-size:12px;padding:2px 8px}.play{border-radius:0}}
 @media (prefers-reduced-motion:reduce){a.card{transition:none}}
 </style>
 </head>
 <body>
 <main>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><symbol id="apple" viewBox="0 0 20 20"><ellipse cx="7.3" cy="11.5" rx="5.4" ry="6" fill="currentColor"/><ellipse cx="12.7" cy="11.5" rx="5.4" ry="6" fill="currentColor"/><ellipse cx="7" cy="9.5" rx="1.4" ry="2.1" fill="#fff" opacity=".45" transform="rotate(20 7 9.5)"/><path d="M10 6 L10.8 2.6" stroke="#6b4a2e" stroke-width="1.6" stroke-linecap="round"/><ellipse cx="13" cy="3.6" rx="2.4" ry="1.1" fill="#4fa33a" transform="rotate(-25 13 3.6)"/></symbol></defs></svg>
-
   <h1>부엌강아지 미니게임 실험실</h1>
   <p class="lead">아이디어를 바로 만들어보고 해본 게임들이에요. 잘 된 것도, 접은 것도 같이 올려둬요.</p>
-  <div class="grid">
-    <a class="card sq" href="worm-apple-chain-2s.html">
+  <div class="grid" aria-label="애벌레 사과">
+    <a class="card sq" href="games/worm-apple-chain-2s/">
       <span class="name">애벌레 사과<span class="sub">4색 고정<br>7개 +2초, 10개 +3초, 13개 +4초</span></span>
       <span class="tag">진행 중</span>
     </a>
-    <a class="card sq" href="worm-apple-chain.html">
+    <a class="card sq" href="games/worm-apple-chain/">
       <span class="name">애벌레 사과<span class="sub">6개 +2초, 9개 +3초, 12개 +4초<br><span class="ln"><svg class="ap" viewBox="0 0 20 20" aria-hidden="true"><use href="#apple" style="color:#3f8fe0"/></svg>3000점 파랑 추가</span><span class="ln"><svg class="ap" viewBox="0 0 20 20" aria-hidden="true"><use href="#apple" style="color:#ff7eb6"/></svg>8000점 분홍 추가</span><span class="ln"><svg class="ap" viewBox="0 0 20 20" aria-hidden="true"><use href="#apple" style="color:#ff9a2e"/></svg>20000점 주황 추가</span></span></span>
       <span class="tag">진행 중</span>
     </a>
   </div>
-  <div class="grid three">
-    <a class="card sq" href="push-to-10.html">
+  <div class="grid three" aria-label="밀어서 10">
+    <a class="card sq" href="games/push-to-10/">
       <span class="name">밀어서 10<span class="sub">가로, 세로 직선만<br>4개 이상 이으면 횟수 +1</span></span>
       <span class="tag">진행 중</span>
     </a>
-    <a class="card sq" href="push-to-10-L.html">
+    <a class="card sq" href="games/push-to-10-L/">
       <span class="name">밀어서 10 ㄱㄴ<span class="sub">네 모서리만 ㄱ, ㄴ 모양 인정<br>움직인 블록이 끼어야 터짐<br>4개 이상 이으면 횟수 +1</span></span>
-      <span class="tag try">새 버전</span>
+      <span class="tag try">실험 중</span>
     </a>
-    <a class="card sq" href="push-to-10-hint.html">
+    <a class="card sq" href="games/push-to-10-hint/">
       <span class="name">밀어서 10 힌트<span class="sub">블록을 톡 누르면 같은 숫자 표시<br>3개만 지워도 횟수 +1</span></span>
-      <span class="tag try">새 버전</span>
+      <span class="tag try">실험 중</span>
     </a>
-    <a class="card sq" href="push-to-10-hint2.html">
+    <a class="card sq" href="games/push-to-10-hint2/">
       <span class="name">밀어서 10 건너뛰기<span class="sub">블록을 톡 누르면 한 칸 건너<br>위아래, 양옆 표시</span></span>
-      <span class="tag try">새 버전</span>
+      <span class="tag try">실험 중</span>
     </a>
-    <a class="card sq" href="push-to-10-spin.html">
+    <a class="card sq" href="games/push-to-10-spin/">
       <span class="name">밀어서 10 쭉 돌리기<span class="sub">줄을 원하는 만큼 돌리고 놓으면 1번<br>3개 이상이면 횟수 +1</span></span>
-      <span class="tag try">새 버전</span>
+      <span class="tag try">실험 중</span>
     </a>
-    <a class="card sq" href="push-to-10-free.html">
+    <a class="card sq" href="games/push-to-10-free/">
       <span class="name">밀어서 10 자유 끌기<span class="sub">밀다가 한 번 꺾기<br>터뜨리면 시간 막대 충전, 하트 3개</span></span>
-      <span class="tag try">새 버전</span>
+      <span class="tag try">실험 중</span>
     </a>
   </div>
-  <div class="list">
-    <a class="card" href="push-to-10-clear.html">
+  <div class="list" aria-label="접은 아이디어">
+    <a class="card" href="games/push-to-10-clear/">
       <div class="top"><span class="name">밀어서 10 클리어 모드</span><span class="tag old">접은 아이디어</span></div>
       <p class="desc">터진 자리가 빈칸으로 남는 큰 판. 정해진 횟수 안에 판을 최대한 비워요.</p>
     </a>
-    <a class="card" href="worm-apple-escape.html">
+    <a class="card" href="games/worm-apple-escape/">
       <div class="top"><span class="name">애벌레 사과 탈출</span><span class="tag old">접은 아이디어</span></div>
       <p class="desc">사과 색마다 갈 수 있는 방향이 달라요. 길을 그려 애벌레를 탈출시켜요.</p>
     </a>
   </div>
-  <footer>만든 사람: 부엌강아지</footer>
+<footer>만든 사람: 부엌강아지 · <a href="about.html">소개</a> · <a href="privacy.html">개인정보처리방침</a></footer>
 </main>
 </body>
 </html>

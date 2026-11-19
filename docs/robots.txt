@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://joosubong.github.io/mini-games/sitemap.xml

@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>밀어서 10 클리어</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<style>
+/*
+VOICE: 경쾌한 보드게임, 짧은 안내
+IDEA: 라비린스 보드판에 숫자 타일, 비워가는 판
+PICTURE: 게임판 자체가 그림
+COLOUR and TYPE: 크림 바탕, 숫자별 파스텔 타일, Jua
+LAYOUT: 위에 점수, 시간, 남은 블록, 가운데 세로로 긴 판
+*/
+:root{color-scheme:light dark;--bg:light-dark(#fdf3e1,#2a2018);--ink:light-dark(#4a3426,#f6e7d0);--card:light-dark(#fffaf0,#3a2c20);--line:light-dark(#e4cfae,#5a4430)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:"Jua",system-ui,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;overscroll-behavior:none;touch-action:none;user-select:none;-webkit-user-select:none;overflow:hidden}
+#wrap{max-width:460px;margin:0 auto;padding:10px 12px;display:flex;flex-direction:column;align-items:center;gap:6px}
+#hud{width:100%;display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:16px}
+.box{background:var(--card);border-radius:12px;padding:5px 10px;box-shadow:0 2px 0 var(--line);white-space:nowrap;text-align:center}
+.box b{font-size:19px}
+#timebar{width:100%;height:8px;background:var(--line);border-radius:6px;overflow:hidden}
+#timefill{height:100%;background:#7cc36a;width:100%}
+canvas{touch-action:none;display:block}
+#row2{display:flex;gap:10px;align-items:center}
+#msg{min-height:22px;font-size:17px;color:#e2553f;text-align:center}
+#stop{font-size:15px;padding:8px 16px;min-height:40px;background:#8b6b4a;box-shadow:0 3px 0 #5c432c}
+#overlay{position:fixed;inset:0;background:rgba(40,28,20,.6);display:flex;align-items:center;justify-content:center;z-index:5}
+#overlay.hide{display:none}
+#panel{background:var(--card);border-radius:20px;padding:24px 22px;text-align:center;width:min(88vw,340px)}
+#panel h1{font-size:28px;line-height:1.1;margin-bottom:10px}
+#panel p{font-size:15px;line-height:1.55;margin-bottom:16px;font-family:system-ui,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+#panel .big{font-size:40px;margin:6px 0}
+button{font:inherit;font-size:19px;background:#e2553f;color:#fff;border:0;border-radius:14px;padding:12px 30px;min-height:44px;box-shadow:0 4px 0 #a83727;cursor:pointer}
+button:active{transform:translateY(2px)}
+button:focus-visible{outline:3px solid #7cc36a;outline-offset:3px}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="hud">
+    <div class="box">점수<br><b id="score">0</b></div>
+    <div class="box">남은 횟수<br><b id="time">20</b></div>
+    <div class="box">남은 블록<br><b id="left">112</b></div>
+    <div class="box">최고<br><b id="best">0</b></div>
+  </div>
+  <canvas id="cv"></canvas>
+  <div id="row2"><div id="msg"></div><button id="stop">그만하기</button></div>
+</div>
+<div id="overlay"><div id="panel"></div></div>
+<script>
+{
+// 밸런스 값은 여기서 조절
+const COLS = 8, ROWS = 14;
+const START_MOVES = 20;      // 시작 밀기 횟수
+const MOVE_BONUS = 1;        // 터뜨리면 돌려받는 횟수
+const MIN_RUN = 2;           // 최소 몇 개를 이어야 터지는지
+const PTS_PER_BLOCK = [0, 0, 5, 10, 15]; // 이은 개수별 블록 1개당 점수 (2개, 3개, 4개 이상)
+const ZERO_CHANCE = 0.1;     // 0이 나올 확률
+const SMALL_RATIO = 0.5;     // 0이 아닐 때 1~5가 나올 비율
+const MAX_SAME = 18;         // 판 위 같은 숫자 최대 개수
+const CLEAR_BONUS = 1000;    // 판을 다 비우면 보너스
+const LEFT_MOVE_BONUS = 50;  // 다 비웠을 때 남은 1회당 보너스
+const SLIDE_SPEED = 9;       // 칸/초
+
+const COLORS = ['#d9d2c7', '#ff9e94', '#ffbf6b', '#ffdc63', '#b9de7e', '#6fd1bd', '#79cdf2', '#9aa5e8', '#cb8de0', '#f58fb4'];
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const $ = id => document.getElementById(id);
+
+let cs, pad, W, H;
+let grid = [], score = 0, best = 0, moves = START_MOVES;
+let state = 'menu', phase = 'idle', popT = 0, popCells = null;
+let outgoing = [], popups = [], msgTimer = 0, lastT = 0, down = null;
+
+try { best = +localStorage.getItem('push10ClearBest') || 0; } catch (e) {}
+$('best').textContent = best;
+
+function weighted() {
+  if (Math.random() < ZERO_CHANCE) return 0;
+  if (Math.random() < SMALL_RATIO) return 1 + Math.floor(Math.random() * 5);
+  return 6 + Math.floor(Math.random() * 4);
+}
+function countOf(n) {
+  let c = 0;
+  grid.forEach(row => row.forEach(b => { if (b && b.n === n) c++; }));
+  return c;
+}
+function rnd() {
+  for (let k = 0; k < 10; k++) { const n = weighted(); if (countOf(n) < MAX_SAME) return n; }
+  return weighted();
+}
+function block(n) { return { n: n, ox: 0, oy: 0 }; }
+
+function resize() {
+  const maxW = Math.min(window.innerWidth - 24, 436);
+  const maxH = window.innerHeight - 160;
+  cs = Math.max(30, Math.floor(Math.min(maxW / (COLS + 1.2), maxH / (ROWS + 1.2))));
+  pad = Math.floor(cs * 0.6);
+  W = COLS * cs + pad * 2; H = ROWS * cs + pad * 2;
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = W * dpr; cv.height = H * dpr;
+  cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener('resize', resize);
+
+function makeBoard() {
+  grid = [];
+  for (let y = 0; y < ROWS; y++) { grid.push([]); for (let x = 0; x < COLS; x++) grid[y].push(block(rnd())); }
+  for (let k = 0; k < 500; k++) {
+    const m = findMatches();
+    if (!m.cells.size) break;
+    m.cells.forEach(id => { grid[Math.floor(id / COLS)][id % COLS].n = rnd(); });
+  }
+}
+
+// 가로 세로로 붙은 3개 이상, 합이 정확히 10인 구간 찾기 (빈칸에서 끊김)
+function findMatches() {
+  const cells = new Set();
+  let runs = 0, pts = 0;
+  const scan = (len, get, id) => {
+    for (let i = 0; i < len; i++) {
+      let s = 0;
+      for (let j = i; j < len; j++) {
+        const b = get(j);
+        if (!b) break;
+        s += b.n;
+        if (s > 10) break;
+        if (s === 10) {
+          while (j + 1 < len && get(j + 1) && get(j + 1).n === 0) j++;
+          if (j - i + 1 < MIN_RUN) break;
+          for (let k = i; k <= j; k++) cells.add(id(k));
+          const runLen = j - i + 1;
+          pts += runLen * PTS_PER_BLOCK[Math.min(runLen, 4)];
+          runs++;
+          break;
+        }
+      }
+    }
+  };
+  for (let y = 0; y < ROWS; y++) scan(COLS, j => grid[y][j], j => y * COLS + j);
+  for (let x = 0; x < COLS; x++) scan(ROWS, j => grid[j][x], j => j * COLS + x);
+  return { cells, runs, pts };
+}
+
+// 어떤 줄이든 몇 칸 돌려서 터질 수 있는 곳이 하나라도 있는지
+function anyMovePossible() {
+  for (let y = 0; y < ROWS; y++) {
+    const orig = grid[y].slice();
+    for (let k = 1; k < COLS; k++) {
+      grid[y] = orig.slice(k).concat(orig.slice(0, k));
+      if (findMatches().cells.size) { grid[y] = orig; return true; }
+    }
+    grid[y] = orig;
+  }
+  for (let x = 0; x < COLS; x++) {
+    const orig = grid.map(r => r[x]);
+    for (let k = 1; k < ROWS; k++) {
+      orig.slice(k).concat(orig.slice(0, k)).forEach((b, y) => grid[y][x] = b);
+      if (findMatches().cells.size) { orig.forEach((b, y) => grid[y][x] = b); return true; }
+    }
+    orig.forEach((b, y) => grid[y][x] = b);
+  }
+  return false;
+}
+
+function blocksLeft() {
+  let c = 0;
+  grid.forEach(row => row.forEach(b => { if (b) c++; }));
+  return c;
+}
+
+function setMsg(text) {
+  $('msg').textContent = text;
+  clearTimeout(msgTimer);
+  msgTimer = setTimeout(() => $('msg').textContent = '', 1300);
+}
+
+// 줄을 한 칸 돌리기 (빈칸도 같이 돌아감)
+function push(side, idx) {
+  if (state !== 'play' || phase !== 'idle' || moves <= 0) return;
+  moves--;
+  const bx = x => pad + x * cs, by = y => pad + y * cs;
+  if (side === 'L' || side === 'R') {
+    const row = grid[idx];
+    if (side === 'L') {
+      const out = row.pop();
+      if (out) outgoing.push({ n: out.n, x: bx(COLS - 1), y: by(idx), vx: 1, vy: 0, t: 1 });
+      row.unshift(out);
+      row.forEach(b => { if (b) b.ox -= cs; });
+    } else {
+      const out = row.shift();
+      if (out) outgoing.push({ n: out.n, x: bx(0), y: by(idx), vx: -1, vy: 0, t: 1 });
+      row.push(out);
+      row.forEach(b => { if (b) b.ox += cs; });
+    }
+  } else {
+    const col = grid.map(r => r[idx]);
+    if (side === 'T') {
+      const out = col.pop();
+      if (out) outgoing.push({ n: out.n, x: bx(idx), y: by(ROWS - 1), vx: 0, vy: 1, t: 1 });
+      col.unshift(out);
+      col.forEach(b => { if (b) b.oy -= cs; });
+    } else {
+      const out = col.shift();
+      if (out) outgoing.push({ n: out.n, x: bx(idx), y: by(0), vx: 0, vy: -1, t: 1 });
+      col.push(out);
+      col.forEach(b => { if (b) b.oy += cs; });
+    }
+    col.forEach((b, y) => grid[y][idx] = b);
+  }
+  phase = 'slide';
+}
+
+function checkMatches() {
+  const m = findMatches();
+  if (!m.cells.size) { phase = 'idle'; if (moves <= 0) endGame(false, false); else if (!anyMovePossible()) endGame(false, true); return; }
+  const pts = m.pts;
+  score += pts;
+  moves += MOVE_BONUS;
+  let sx = 0, sy = 0;
+  m.cells.forEach(id => { sx += pad + (id % COLS + 0.5) * cs; sy += pad + (Math.floor(id / COLS) + 0.5) * cs; });
+  popups.push({ x: sx / m.cells.size, y: sy / m.cells.size, text: '+' + pts + '  횟수+' + MOVE_BONUS, t: 1 });
+  if (m.runs >= 2) setMsg(m.runs + '줄 동시에!');
+  popCells = m.cells;
+  popT = 0.3;
+  phase = 'pop';
+}
+
+function finishPop() {
+  popCells.forEach(id => { grid[Math.floor(id / COLS)][id % COLS] = null; });
+  popCells = null;
+  phase = 'idle';
+  if (blocksLeft() === 0) endGame(true);
+  else if (moves <= 0) endGame(false, false);
+  else if (!anyMovePossible()) endGame(false, true);
+}
+
+function settled() {
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    const b = grid[y][x];
+    if (b && (b.ox || b.oy)) return false;
+  }
+  return true;
+}
+
+/* 입력 */
+function local(e) { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+cv.addEventListener('pointerdown', e => { down = local(e); });
+cv.addEventListener('pointerup', e => {
+  if (!down) return;
+  const [px, py] = local(e), [x0, y0] = down;
+  down = null;
+  const dx = px - x0, dy = py - y0;
+  const gx = Math.floor((x0 - pad) / cs), gy = Math.floor((y0 - pad) / cs);
+  const inside = gx >= 0 && gy >= 0 && gx < COLS && gy < ROWS;
+  const moved = Math.max(Math.abs(dx), Math.abs(dy)) > cs * 0.35;
+  if (inside && moved) {
+    if (Math.abs(dx) > Math.abs(dy)) push(dx > 0 ? 'L' : 'R', gy);
+    else push(dy > 0 ? 'T' : 'B', gx);
+    return;
+  }
+  if (moved) return;
+  const ax = Math.floor((px - pad) / cs), ay = Math.floor((py - pad) / cs);
+  if (ay >= 0 && ay < ROWS && px < pad) push('L', ay);
+  else if (ay >= 0 && ay < ROWS && px > pad + COLS * cs) push('R', ay);
+  else if (ax >= 0 && ax < COLS && py < pad) push('T', ax);
+  else if (ax >= 0 && ax < COLS && py > pad + ROWS * cs) push('B', ax);
+});
+$('stop').addEventListener('click', () => { if (state === 'play' && phase === 'idle') endGame(false); });
+
+function startGame() {
+  score = 0; moves = START_MOVES; outgoing = []; popups = []; popCells = null;
+  makeBoard();
+  state = 'play'; phase = 'idle';
+  $('overlay').classList.add('hide');
+}
+
+function endGame(cleared, stuck) {
+  state = 'over';
+  let extra = '';
+  if (cleared) {
+    const tb = moves * LEFT_MOVE_BONUS;
+    score += CLEAR_BONUS + tb;
+    extra = '<p>판을 전부 비웠어요!<br>클리어 보너스 ' + CLEAR_BONUS + ' + 남은 횟수 보너스 ' + tb + '</p>';
+  } else {
+    extra = '<p>' + (stuck ? '더 이상 터뜨릴 수 있는 곳이 없어요<br>' : (moves <= 0 ? '횟수를 다 썼어요<br>' : '')) + '남은 블록 ' + blocksLeft() + '개</p>';
+  }
+  if (score > best) { best = score; try { localStorage.setItem('push10ClearBest', best); } catch (e) {} }
+  $('best').textContent = best;
+  showPanel('<h1>' + (cleared ? '클리어!' : '끝!') + '</h1><div class="big">' + score + '점</div>' + extra + '<p>최고 점수 ' + best + '점</p><button id="go">다시 하기</button>');
+}
+
+function showPanel(html) {
+  $('panel').innerHTML = html;
+  $('overlay').classList.remove('hide');
+  $('go').addEventListener('click', startGame);
+  $('go').focus();
+}
+
+/* 그리기 */
+function rr(x, y, w, h, r) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill(); }
+
+function drawBlock(X, Y, n, scale, alpha) {
+  const s = cs * 0.88 * scale, o = (cs - s) / 2;
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = 'rgba(70,45,25,.18)'; rr(X + o, Y + o + 3, s, s, s * 0.22);
+  ctx.fillStyle = COLORS[n]; rr(X + o, Y + o, s, s, s * 0.22);
+  ctx.fillStyle = 'rgba(255,255,255,.35)'; rr(X + o + s * 0.1, Y + o + s * 0.08, s * 0.8, s * 0.22, s * 0.11);
+  ctx.fillStyle = '#3a2a1e';
+  ctx.font = Math.floor(s * 0.55) + 'px Jua, sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(n, X + cs / 2, Y + cs / 2 + s * 0.04);
+  ctx.globalAlpha = 1;
+}
+
+function arrow(x, y, dir) {
+  const s = cs * 0.15;
+  ctx.fillStyle = '#c9a77a';
+  ctx.beginPath();
+  if (dir === 'R') { ctx.moveTo(x - s, y - s); ctx.lineTo(x + s, y); ctx.lineTo(x - s, y + s); }
+  if (dir === 'L') { ctx.moveTo(x + s, y - s); ctx.lineTo(x - s, y); ctx.lineTo(x + s, y + s); }
+  if (dir === 'D') { ctx.moveTo(x - s, y - s); ctx.lineTo(x, y + s); ctx.lineTo(x + s, y - s); }
+  if (dir === 'U') { ctx.moveTo(x - s, y + s); ctx.lineTo(x, y - s); ctx.lineTo(x + s, y + s); }
+  ctx.closePath(); ctx.fill();
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#f3dfbd'; rr(0, 0, W, H, 18);
+  ctx.fillStyle = '#e8cfa5'; rr(pad - 4, pad - 4, COLS * cs + 8, ROWS * cs + 8, 12);
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    ctx.fillStyle = (x + y) % 2 ? '#f7e8cc' : '#fbf0dc';
+    ctx.fillRect(pad + x * cs, pad + y * cs, cs, cs);
+  }
+  for (let y = 0; y < ROWS; y++) { const c = pad + (y + 0.5) * cs; arrow(pad / 2, c, 'R'); arrow(W - pad / 2, c, 'L'); }
+  for (let x = 0; x < COLS; x++) { const c = pad + (x + 0.5) * cs; arrow(c, pad / 2, 'D'); arrow(c, H - pad / 2, 'U'); }
+  if (!grid.length) return;
+
+  ctx.save();
+  ctx.beginPath(); ctx.rect(pad - 4, pad - 4, COLS * cs + 8, ROWS * cs + 8); ctx.clip();
+  outgoing.forEach(o => drawBlock(o.x + o.vx * (1 - o.t) * cs, o.y + o.vy * (1 - o.t) * cs, o.n, 1, Math.max(0, o.t)));
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    const b = grid[y][x];
+    if (!b) continue;
+    if (phase === 'pop' && popCells && popCells.has(y * COLS + x)) {
+      const t = popT / 0.3;
+      ctx.fillStyle = 'rgba(255,255,255,' + (0.7 * t) + ')';
+      rr(pad + x * cs + 2, pad + y * cs + 2, cs - 4, cs - 4, cs * 0.2);
+      drawBlock(pad + x * cs, pad + y * cs, b.n, 0.4 + 0.75 * t, t);
+    } else {
+      drawBlock(pad + x * cs + b.ox, pad + y * cs + b.oy, b.n, 1, 1);
+    }
+  }
+  ctx.restore();
+
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  popups.forEach(p => {
+    ctx.globalAlpha = Math.max(0, p.t);
+    ctx.font = Math.floor(cs * 0.5) + 'px Jua, sans-serif';
+    ctx.lineWidth = 4; ctx.strokeStyle = '#fffaf0';
+    const yy = p.y - (1 - p.t) * cs;
+    ctx.strokeText(p.text, p.x, yy);
+    ctx.fillStyle = '#e2553f'; ctx.fillText(p.text, p.x, yy);
+    ctx.globalAlpha = 1;
+  });
+}
+
+function approach(v, step) { return v > 0 ? Math.max(0, v - step) : Math.min(0, v + step); }
+
+function loop(now) {
+  const dt = Math.min(0.05, (now - lastT) / 1000 || 0);
+  lastT = now;
+  grid.forEach(row => row.forEach(b => {
+    if (!b) return;
+    b.ox = approach(b.ox, cs * SLIDE_SPEED * dt);
+    b.oy = approach(b.oy, cs * SLIDE_SPEED * dt);
+  }));
+  outgoing.forEach(o => o.t -= dt * SLIDE_SPEED * 0.9);
+  outgoing = outgoing.filter(o => o.t > 0);
+  if (state === 'play') {
+    if (phase === 'slide' && settled()) checkMatches();
+    else if (phase === 'pop') { popT -= dt; if (popT <= 0) finishPop(); }
+  }
+  popups.forEach(p => p.t -= dt * 0.8);
+  popups = popups.filter(p => p.t > 0);
+  $('score').textContent = score;
+  $('time').textContent = moves;
+  $('left').textContent = grid.length ? blocksLeft() : ROWS * COLS;
+  draw();
+  requestAnimationFrame(loop);
+}
+
+resize();
+makeBoard();
+showPanel('<h1>밀어서 10<br>클리어 모드</h1><p>줄을 밀어서 가로나 세로로 붙은 합이 10이 되면 터져요.<br>길게 이을수록 점수가 커요.<br>터진 자리는 빈칸으로 남고, 빈칸도 같이 밀려요.<br>' + START_MOVES + '번 밀 수 있고, 터뜨리면 1번 돌려받아요.<br>판을 최대한 비워보세요!</p><button id="go">시작</button>');
+requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>

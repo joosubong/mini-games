@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>애벌레 사과 이어먹기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<style>
+/*
+VOICE: 귀여운 동화 스티커, 짧고 경쾌한 말투
+IDEA: 사과 상자 속 애벌레 스티커판
+PICTURE: 게임판 자체가 그림
+COLOUR and TYPE: 풀색 바탕, 사과 빨강, 크림, Jua
+LAYOUT: 위에 점수와 시간, 가운데 판, 아래 안내
+*/
+:root{color-scheme:light dark;--bg:light-dark(#fdf3e1,#2a2018);--ink:light-dark(#4a3426,#f6e7d0);--card:light-dark(#fffaf0,#3a2c20);--line:light-dark(#e4cfae,#5a4430)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:"Jua",system-ui,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;overscroll-behavior:none;touch-action:none;user-select:none;-webkit-user-select:none;overflow:hidden}
+#wrap{position:relative;max-width:540px;margin:0 auto;padding:6px;display:flex;flex-direction:column;align-items:center;gap:6px}
+#hud{width:100%;display:flex;justify-content:space-between;gap:8px;font-size:18px}
+.box{background:var(--card);border-radius:12px;padding:4px 12px;box-shadow:0 2px 0 var(--line);white-space:nowrap}
+#timebar{width:100%;height:8px;background:var(--line);border-radius:6px;overflow:hidden}
+#timefill{height:100%;background:#7cc36a;width:100%}
+canvas{touch-action:none;display:block;border-radius:16px}
+#msg{position:absolute;left:0;right:0;bottom:18px;font-size:20px;color:#e2553f;text-align:center;pointer-events:none;text-shadow:0 0 4px #fff,0 0 8px #fff}
+#help{font-size:14px;text-align:center;line-height:1.5;opacity:.85}
+#overlay{position:fixed;inset:0;background:rgba(40,28,20,.6);display:flex;align-items:center;justify-content:center;z-index:5}
+#overlay.hide{display:none}
+#panel{background:var(--card);border-radius:20px;padding:24px 22px;text-align:center;width:min(88vw,340px)}
+#panel h1{font-size:28px;line-height:1.1;margin-bottom:10px}
+#panel p{font-size:15px;line-height:1.55;margin-bottom:16px;font-family:system-ui,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+#panel .big{font-size:40px;margin:6px 0}
+button{font:inherit;font-size:19px;background:#e2553f;color:#fff;border:0;border-radius:14px;padding:12px 30px;min-height:44px;box-shadow:0 4px 0 #a83727;cursor:pointer}
+button:active{transform:translateY(2px);box-shadow:0 2px 0 #a83727}
+button:focus-visible{outline:3px solid #7cc36a;outline-offset:3px}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="hud">
+    <div class="box">점수 <b id="score">0</b></div>
+    <div class="box">시간 <b id="time">60</b></div>
+    <div class="box">최고 <b id="best">0</b></div>
+  </div>
+  <div id="timebar"><div id="timefill"></div></div>
+  <canvas id="cv"></canvas>
+  <div id="msg"></div>
+</div>
+<div id="overlay"><div id="panel"></div></div>
+<script>
+{
+const COLS = 8, ROWS = 14, TIME = 60, MIN_CHAIN = 3;
+const GOLD = 99; // 황금 사과는 지금 안 씀
+// 사과 색: 빨강, 초록, 노랑, 보라, 파랑, 분홍, 주황
+const COLOR = ['#e5483a', '#86c440', '#f3c43a', '#9b6bd3', '#3f8fe0', '#ff7eb6', '#ff9a2e'];
+// 점수에 따라 사과 색 수가 늘어남 (난이도 조절은 여기서)
+const COLOR_STEPS = [[0, 4], [3000, 5], [8000, 6], [20000, 7]];
+// 6개 이상 이으면 받는 시간 (초): 6~8개 +2, 9~11개 +3, 12~14개 +4 ... (3개 더 이을 때마다 +1초)
+const BONUS_FROM = 6;
+function timeBonus(n) { return n < BONUS_FROM ? 0 : 2 + Math.floor((n - BONUS_FROM) / 3); }
+function colorCount() { let k = COLOR_STEPS[0][1]; for (const [sc, n] of COLOR_STEPS) if (score >= sc) k = n; return k; }
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const $ = id => document.getElementById(id);
+
+let cs, W, H;
+let grid = [], path = [], dragging = false;
+let state = 'menu', anim = null, score = 0, timeLeft = TIME, best = 0;
+let popups = [], msgTimer = 0, lastT = 0;
+
+try { best = +localStorage.getItem('wormChainBest') || 0; } catch (e) {}
+$('best').textContent = best;
+
+function resize() {
+  const maxW = Math.min(window.innerWidth - 12, 520);
+  const maxH = window.innerHeight - 76; // 위쪽 점수판과 시간 막대 높이만 빼고 전부 판으로
+  cs = Math.max(34, Math.floor(Math.min(maxW / COLS, maxH / ROWS)));
+  W = COLS * cs; H = ROWS * cs;
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = W * dpr; cv.height = H * dpr;
+  cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener('resize', resize);
+
+function newApple(oy) { return { c: Math.floor(Math.random() * colorCount()), oy: oy || 0 }; }
+
+function fillBoard() {
+  grid = [];
+  for (let y = 0; y < ROWS; y++) {
+    grid.push([]);
+    for (let x = 0; x < COLS; x++) grid[y].push(newApple((ROWS - y + 2) * cs * 0.6));
+  }
+}
+
+function settled() {
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (grid[y][x] && grid[y][x].oy > 0) return false;
+  return true;
+}
+
+function setMsg(text) {
+  $('msg').textContent = text;
+  clearTimeout(msgTimer);
+  msgTimer = setTimeout(() => $('msg').textContent = '', 1200);
+}
+
+// 사슬 색: 황금 사과가 아닌 첫 사과의 색
+function chainColor() {
+  for (const p of path) { const c = grid[p[1]][p[0]].c; if (c !== GOLD) return c; }
+  return -1;
+}
+
+function canAdd(x, y) {
+  const a = grid[y][x];
+  if (a.c === GOLD) return true;
+  const cc = chainColor();
+  return cc === -1 || cc === a.c;
+}
+
+function cellAt(e) {
+  const r = cv.getBoundingClientRect();
+  const px = e.clientX - r.left, py = e.clientY - r.top;
+  const x = Math.floor(px / cs), y = Math.floor(py / cs);
+  if (x < 0 || y < 0 || x >= COLS || y >= ROWS) return null;
+  const d = Math.hypot(px - (x + 0.5) * cs, py - (y + 0.5) * cs);
+  if (d > cs * 0.42) return null;
+  return [x, y];
+}
+
+function handle(e) {
+  const c = cellAt(e);
+  if (!c) return;
+  if (!path.length) { path.push(c); return; }
+  const last = path[path.length - 1];
+  if (c[0] === last[0] && c[1] === last[1]) return;
+  if (path.length >= 2) {
+    const pv = path[path.length - 2];
+    if (pv[0] === c[0] && pv[1] === c[1]) { path.pop(); return; }
+  }
+  if (Math.max(Math.abs(c[0] - last[0]), Math.abs(c[1] - last[1])) !== 1) return;
+  if (path.some(p => p[0] === c[0] && p[1] === c[1])) return;
+  if (canAdd(c[0], c[1])) path.push(c);
+}
+
+cv.addEventListener('pointerdown', e => {
+  if (state !== 'play' || anim || !settled()) return;
+  dragging = true;
+  try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+  path = [];
+  handle(e);
+});
+cv.addEventListener('pointermove', e => { if (dragging) handle(e); });
+
+function endDrag() {
+  if (!dragging) return;
+  dragging = false;
+  if (state === 'play' && path.length >= MIN_CHAIN) startEat();
+  else if (path.length > 1) setMsg('3개 이상 이어야 해요');
+  path = [];
+}
+cv.addEventListener('pointerup', endDrag);
+cv.addEventListener('pointercancel', endDrag);
+
+function ctr(p) { return [(p[0] + 0.5) * cs, (p[1] + 0.5) * cs]; }
+
+function startEat() {
+  const pts = path.map(ctr);
+  const cum = [0];
+  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  anim = { pts, cum, d: 0, cells: path.slice(), eaten: 0 };
+}
+
+function pointAt(a, d) {
+  if (d <= 0) return a.pts[0];
+  const n = a.pts.length;
+  if (d >= a.cum[n - 1]) return a.pts[n - 1];
+  let i = 1;
+  while (a.cum[i] < d) i++;
+  const t = (d - a.cum[i - 1]) / (a.cum[i] - a.cum[i - 1]);
+  const p0 = a.pts[i - 1], p1 = a.pts[i];
+  return [p0[0] + (p1[0] - p0[0]) * t, p0[1] + (p1[1] - p0[1]) * t];
+}
+
+function finishEat() {
+  const n = anim.cells.length;
+  const pts = n * 10 + (n - 2) * (n - 2) * 5;
+  const before = colorCount();
+  score += pts;
+  let text = '';
+  if (n >= BONUS_FROM) { const tb = timeBonus(n); timeLeft = Math.min(TIME, timeLeft + tb); text = '+' + tb + '초!'; }
+  if (colorCount() > before) text = '새로운 색 사과 등장!';
+  if (text) setMsg(text);
+  const lp = anim.pts[anim.pts.length - 1];
+  popups.push({ x: lp[0], y: lp[1], text: '+' + pts, t: 1 });
+  // 먹은 사과를 판에서 지운 뒤 위 사과들을 내림
+  anim.cells.forEach(c => { grid[c[1]][c[0]] = null; });
+  dropDown(false); // 황금 사과(아무 색이나 이어지는 사과)는 뺌
+  anim = null;
+}
+
+// 빈칸 채우기: 아래로 떨어뜨리고 위에서 새 사과
+function dropDown(spawnGold) {
+  const newOnes = [];
+  for (let x = 0; x < COLS; x++) {
+    let write = ROWS - 1;
+    for (let y = ROWS - 1; y >= 0; y--) {
+      const a = grid[y][x];
+      if (!a) continue;
+      if (write !== y) { a.oy += (write - y) * cs; grid[write][x] = a; grid[y][x] = null; }
+      write--;
+    }
+    const missing = write + 1;
+    for (let y = write; y >= 0; y--) {
+      const a = newApple(missing * cs + cs * 0.3);
+      grid[y][x] = a; newOnes.push(a);
+    }
+  }
+  if (spawnGold && newOnes.length) newOnes[Math.floor(Math.random() * newOnes.length)].c = GOLD;
+}
+
+function startGame() {
+  score = 0; timeLeft = TIME; path = []; anim = null; popups = [];
+  fillBoard();
+  state = 'play';
+  $('overlay').classList.add('hide');
+}
+
+function gameOver() {
+  state = 'over'; dragging = false; path = [];
+  if (score > best) { best = score; try { localStorage.setItem('wormChainBest', best); } catch (e) {} }
+  $('best').textContent = best;
+  showPanel('<h1>시간 끝!</h1><div class="big">' + score + '점</div><p>최고 점수 ' + best + '점</p><button id="go">다시 하기</button>');
+}
+
+function showPanel(html) {
+  $('panel').innerHTML = html;
+  $('overlay').classList.remove('hide');
+  $('go').addEventListener('click', startGame);
+  $('go').focus();
+}
+
+/* 그리기 */
+function ell(x, y, rx, ry, rot) { ctx.beginPath(); ctx.ellipse(x, y, rx, ry, rot || 0, 0, Math.PI * 2); ctx.fill(); }
+
+function drawApple(X, Y, c, scale, lit) {
+  const r = cs * 0.38 * scale; // 칸 대비 사과 크기
+  ctx.fillStyle = 'rgba(60,40,20,.12)'; ell(X, Y + r * 0.85, r * 0.8, r * 0.2);
+  ctx.fillStyle = COLOR[c];
+  ell(X - r * 0.28, Y + r * 0.05, r * 0.72, r * 0.8);
+  ell(X + r * 0.28, Y + r * 0.05, r * 0.72, r * 0.8);
+  ctx.fillStyle = 'rgba(0,0,0,.08)'; ell(X + r * 0.25, Y + r * 0.35, r * 0.55, r * 0.4);
+  ctx.fillStyle = 'rgba(255,255,255,.45)'; ell(X - r * 0.45, Y - r * 0.25, r * 0.18, r * 0.28, 0.4);
+  ctx.strokeStyle = '#6b4a2e'; ctx.lineWidth = r * 0.13; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(X, Y - r * 0.55); ctx.lineTo(X + r * 0.1, Y - r * 0.95); ctx.stroke();
+  ctx.fillStyle = '#4fa33a'; ell(X + r * 0.38, Y - r * 0.82, r * 0.3, r * 0.13, -0.5);
+  if (c === GOLD) {
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = r * 0.09;
+    const sx = X + r * 0.1, sy = Y + r * 0.1, s = r * 0.3;
+    ctx.beginPath(); ctx.moveTo(sx - s, sy); ctx.lineTo(sx + s, sy); ctx.moveTo(sx, sy - s); ctx.lineTo(sx, sy + s); ctx.stroke();
+  }
+  if (lit) {
+    ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(X, Y + r * 0.05, r * 1.12, 0, Math.PI * 2); ctx.stroke();
+  }
+}
+
+function drawWorm(pts, fat) {
+  const br = cs * 0.15 * fat;
+  for (let i = pts.length - 1; i >= 1; i--) {
+    ctx.fillStyle = '#5d9a3a'; ell(pts[i][0], pts[i][1], br + 2, br + 2);
+    ctx.fillStyle = i % 2 ? '#9bd36a' : '#86c75a'; ell(pts[i][0], pts[i][1], br, br);
+  }
+  const h = pts[0], hr = cs * 0.2 * fat;
+  ctx.fillStyle = '#5d9a3a'; ell(h[0], h[1], hr + 2, hr + 2);
+  ctx.fillStyle = '#a8de76'; ell(h[0], h[1], hr, hr);
+  ctx.fillStyle = '#fff'; ell(h[0] - hr * 0.35, h[1] - hr * 0.2, hr * 0.3, hr * 0.34); ell(h[0] + hr * 0.35, h[1] - hr * 0.2, hr * 0.3, hr * 0.34);
+  ctx.fillStyle = '#2b1d12'; ell(h[0] - hr * 0.3, h[1] - hr * 0.15, hr * 0.15, hr * 0.18); ell(h[0] + hr * 0.4, h[1] - hr * 0.15, hr * 0.15, hr * 0.18);
+  ctx.fillStyle = 'rgba(240,120,120,.6)'; ell(h[0] - hr * 0.6, h[1] + hr * 0.35, hr * 0.18, hr * 0.12); ell(h[0] + hr * 0.6, h[1] + hr * 0.35, hr * 0.18, hr * 0.12);
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    ctx.fillStyle = (x + y) % 2 ? '#c3e098' : '#d8edb6';
+    ctx.fillRect(x * cs, y * cs, cs, cs);
+  }
+  if (!grid.length) return;
+
+  // 사슬 선
+  if (path.length) {
+    const cc = chainColor();
+    ctx.strokeStyle = cc === -1 ? '#e0b020' : COLOR[cc];
+    ctx.globalAlpha = 0.75;
+    ctx.lineWidth = cs * 0.22; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    path.forEach((p, i) => { const q = ctr(p); i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]); });
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  const inPath = new Set(path.map(p => p[1] * COLS + p[0]));
+  const eatenSet = new Set();
+  if (anim) anim.cells.forEach((c, i) => { if (anim.d >= anim.cum[i]) eatenSet.add(c[1] * COLS + c[0]); });
+
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    const a = grid[y][x];
+    if (!a || eatenSet.has(y * COLS + x)) continue;
+    const lit = inPath.has(y * COLS + x);
+    drawApple((x + 0.5) * cs, (y + 0.5) * cs - a.oy, a.c, lit ? 1.1 : 1, lit);
+  }
+
+  if (path.length) {
+    const l = ctr(path[path.length - 1]);
+    ctx.fillStyle = '#4a3426';
+    ctx.font = Math.floor(cs * 0.34) + 'px Jua, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(path.length, l[0] + cs * 0.36, l[1] - cs * 0.36);
+  }
+
+  if (anim) {
+    const segs = Math.min(3 + anim.cells.length, 12), seg = [];
+    for (let k = 0; k < segs; k++) seg.push(pointAt(anim, anim.d - k * cs * 0.22));
+    drawWorm(seg, 1 + Math.min(anim.cells.length, 12) * 0.03);
+  }
+
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  popups.forEach(p => {
+    ctx.globalAlpha = Math.max(0, p.t);
+    ctx.fillStyle = '#e2553f'; ctx.font = Math.floor(cs * 0.55) + 'px Jua, sans-serif';
+    ctx.fillText(p.text, p.x, p.y - (1 - p.t) * cs);
+    ctx.globalAlpha = 1;
+  });
+}
+
+function loop(now) {
+  const dt = Math.min(0.05, (now - lastT) / 1000 || 0);
+  lastT = now;
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    const a = grid[y] && grid[y][x];
+    if (a && a.oy > 0) a.oy = Math.max(0, a.oy - cs * 14 * dt);
+  }
+  if (state === 'play') {
+    if (anim) {
+      anim.d += cs * 12 * dt;
+      if (anim.d >= anim.cum[anim.cum.length - 1] + cs * 0.4) finishEat();
+    } else {
+      timeLeft -= dt;
+      if (timeLeft <= 0) { timeLeft = 0; gameOver(); }
+    }
+  }
+  popups.forEach(p => p.t -= dt * 0.9);
+  popups = popups.filter(p => p.t > 0);
+  $('score').textContent = score;
+  $('time').textContent = Math.ceil(timeLeft);
+  const f = timeLeft / TIME;
+  $('timefill').style.width = (f * 100) + '%';
+  $('timefill').style.background = f < 0.25 ? '#e2553f' : '#7cc36a';
+  draw();
+  requestAnimationFrame(loop);
+}
+
+resize();
+fillBoard();
+showPanel('<h1>애벌레 사과 이어먹기</h1><p>같은 색 사과를 3개 이상 손가락으로 이어주세요.<br>애벌레가 줄을 따라 냠냠 먹어요.<br>길게 이을수록 점수가 훨씬 커져요!</p><button id="go">시작</button>');
+requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>

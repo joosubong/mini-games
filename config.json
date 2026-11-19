@@ -1,0 +1,15 @@
+{
+  "siteName": "부엌강아지 미니게임 실험실",
+  "siteUrl": "https://joosubong.github.io/mini-games/",
+  "lead": "아이디어를 바로 만들어보고 해본 게임들이에요. 잘 된 것도, 접은 것도 같이 올려둬요.",
+  "author": "부엌강아지",
+  "adsEnabled": false,
+  "adsenseClient": "",
+  "adsenseSlot": "",
+  "analyticsToken": "",
+  "sections": [
+    { "name": "애벌레 사과", "layout": "grid2" },
+    { "name": "밀어서 10", "layout": "grid3" },
+    { "name": "접은 아이디어", "layout": "list" }
+  ]
+}
