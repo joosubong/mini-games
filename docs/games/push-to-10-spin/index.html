@@ -2,7 +2,8 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<script>(function(){var p=function(e){e.preventDefault()};['gesturestart','gesturechange','gestureend'].forEach(function(t){document.addEventListener(t,p,{passive:false})});document.addEventListener('touchmove',function(e){if(e.touches.length>1)e.preventDefault()},{passive:false});})();</script>
 <title>밀어서 10 쭉 돌리기 | 부엌강아지 미니게임 실험실</title>
 <meta name="description" content="줄을 원하는 만큼 돌리고 놓으면 1번, 3개 이상이면 횟수 +1">
 <link rel="canonical" href="https://joosubong.github.io/mini-games/games/push-to-10-spin/">
@@ -14,6 +15,7 @@
 <style>
 :root{color-scheme:light dark;--bg:light-dark(#fdf3e1,#2a2018);--ink:light-dark(#4a3426,#f6e7d0);--card:light-dark(#fffaf0,#3a2c20);--line:light-dark(#e4cfae,#5a4430);--sub:light-dark(#7a6250,#cbb79f)}
 *{box-sizing:border-box;margin:0;padding:0}
+html{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
 main{max-width:640px;margin:0 auto;padding:32px 16px 48px}
 a{color:inherit}
@@ -44,7 +46,7 @@ a.sq{aspect-ratio:5/4;min-height:max-content;display:flex;flex-direction:column;
 .head h1{margin:0}
 .meta{color:var(--sub);font-size:14px;margin-bottom:16px}
 .play{margin:0 -16px;background:var(--card);border-radius:16px;overflow:hidden;box-shadow:0 3px 0 var(--line)}
-.play iframe{display:block;width:100%;height:min(calc(100svh - 64px),860px);border:0;background:var(--bg)}
+.play iframe{display:block;width:100%;height:min(calc(100vh - 64px),860px);height:min(calc(100svh - 64px),860px);border:0;background:var(--bg)}
 main.game{padding-top:12px}
 .meta.under{margin:10px 0 0}
 .full{display:inline-block;margin-top:12px;font-family:"Jua",sans-serif;font-size:18px;background:#e2553f;color:#fff;text-decoration:none;padding:8px 18px;border-radius:999px}

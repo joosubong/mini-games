@@ -62,6 +62,7 @@ const APPLE_SYMBOL = '<svg width="0" height="0" style="position:absolute" aria-h
 
 const CSS = `:root{color-scheme:light dark;--bg:light-dark(#fdf3e1,#2a2018);--ink:light-dark(#4a3426,#f6e7d0);--card:light-dark(#fffaf0,#3a2c20);--line:light-dark(#e4cfae,#5a4430);--sub:light-dark(#7a6250,#cbb79f)}
 *{box-sizing:border-box;margin:0;padding:0}
+html{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
 main{max-width:640px;margin:0 auto;padding:32px 16px 48px}
 a{color:inherit}
@@ -92,7 +93,7 @@ a.sq{aspect-ratio:5/4;min-height:max-content;display:flex;flex-direction:column;
 .head h1{margin:0}
 .meta{color:var(--sub);font-size:14px;margin-bottom:16px}
 .play{margin:0 -16px;background:var(--card);border-radius:16px;overflow:hidden;box-shadow:0 3px 0 var(--line)}
-.play iframe{display:block;width:100%;height:min(calc(100svh - 64px),860px);border:0;background:var(--bg)}
+.play iframe{display:block;width:100%;height:min(calc(100vh - 64px),860px);height:min(calc(100svh - 64px),860px);border:0;background:var(--bg)}
 main.game{padding-top:12px}
 .meta.under{margin:10px 0 0}
 .full{display:inline-block;margin-top:12px;font-family:"Jua",sans-serif;font-size:18px;background:#e2553f;color:#fff;text-decoration:none;padding:8px 18px;border-radius:999px}
@@ -107,6 +108,10 @@ footer a{color:var(--sub)}
 @media (max-width:480px){.sq .name{font-size:17px}.sub{font-size:12px}a.sq{padding:12px}.tag{font-size:12px;padding:2px 8px}.play{border-radius:0}}
 @media (prefers-reduced-motion:reduce){a.card{transition:none}}`;
 
+// 아이폰 사파리는 user-scalable=no 를 무시해서, 두 손가락 확대를 직접 막는다 (두 번 톡 확대는 CSS touch-action 으로 막음)
+const NO_ZOOM = `(function(){var p=function(e){e.preventDefault()};['gesturestart','gesturechange','gestureend'].forEach(function(t){document.addEventListener(t,p,{passive:false})});` +
+  `document.addEventListener('touchmove',function(e){if(e.touches.length>1)e.preventDefault()},{passive:false});})();`;
+
 // 페이지 머리 (base: 사이트 루트까지의 상대 경로)
 function head({ title, desc, canonical }) {
   const parts = [
@@ -114,7 +119,9 @@ function head({ title, desc, canonical }) {
     '<html lang="ko">',
     '<head>',
     '<meta charset="UTF-8">',
-    '<meta name="viewport" content="width=device-width,initial-scale=1">',
+    // 폰에서 확대, 축소 막기 (아이폰은 아래 스크립트로 한 번 더 막음)
+    '<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">',
+    `<script>${NO_ZOOM}</script>`,
     `<title>${esc(title)}</title>`,
     desc ? `<meta name="description" content="${esc(desc)}">` : '',
     canonical ? `<link rel="canonical" href="${esc(canonical)}">` : '',
