@@ -44,7 +44,9 @@ a.sq{aspect-ratio:5/4;min-height:max-content;display:flex;flex-direction:column;
 .head h1{margin:0}
 .meta{color:var(--sub);font-size:14px;margin-bottom:16px}
 .play{margin:0 -16px;background:var(--card);border-radius:16px;overflow:hidden;box-shadow:0 3px 0 var(--line)}
-.play iframe{display:block;width:100%;height:min(calc(100svh - 40px),860px);border:0;background:var(--bg)}
+.play iframe{display:block;width:100%;height:min(calc(100svh - 64px),860px);border:0;background:var(--bg)}
+main.game{padding-top:12px}
+.meta.under{margin:10px 0 0}
 .full{display:inline-block;margin-top:12px;font-family:"Jua",sans-serif;font-size:18px;background:#e2553f;color:#fff;text-decoration:none;padding:8px 18px;border-radius:999px}
 .prose p{margin-bottom:10px}
 .prose ul{margin:0 0 10px 20px}
@@ -59,11 +61,10 @@ footer a{color:var(--sub)}
 </style>
 </head>
 <body>
-<main>
-<a class="home" href="../../">부엌강아지 미니게임 실험실</a>
+<main class="game">
 <div class="head"><h1>밀어서 10 클리어 모드</h1><span class="tag old">접은 아이디어</span></div>
-<p class="meta">터진 자리가 빈칸으로 남는 큰 판. 정해진 횟수 안에 판을 최대한 비워요.</p>
 <div class="play"><iframe src="game.html" title="밀어서 10 클리어 모드 게임" allow="fullscreen" loading="eager"></iframe></div>
+<p class="meta under">터진 자리가 빈칸으로 남는 큰 판. 정해진 횟수 안에 판을 최대한 비워요.</p>
 <a class="full" href="game.html">전체 화면으로 하기</a>
 <h2>하는 법</h2>
 <div class="prose"><p>줄을 밀어서 가로나 세로로 붙은 합이 10이 되면 터져요. 터진 자리는 빈칸으로 남고, 빈칸도 같이 밀려요. 정해진 횟수 안에 판을 최대한 비워보세요. 판을 전부 비우면 큰 보너스를 받아요.</p></div>

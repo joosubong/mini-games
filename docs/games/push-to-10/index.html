@@ -44,7 +44,9 @@ a.sq{aspect-ratio:5/4;min-height:max-content;display:flex;flex-direction:column;
 .head h1{margin:0}
 .meta{color:var(--sub);font-size:14px;margin-bottom:16px}
 .play{margin:0 -16px;background:var(--card);border-radius:16px;overflow:hidden;box-shadow:0 3px 0 var(--line)}
-.play iframe{display:block;width:100%;height:min(calc(100svh - 40px),860px);border:0;background:var(--bg)}
+.play iframe{display:block;width:100%;height:min(calc(100svh - 64px),860px);border:0;background:var(--bg)}
+main.game{padding-top:12px}
+.meta.under{margin:10px 0 0}
 .full{display:inline-block;margin-top:12px;font-family:"Jua",sans-serif;font-size:18px;background:#e2553f;color:#fff;text-decoration:none;padding:8px 18px;border-radius:999px}
 .prose p{margin-bottom:10px}
 .prose ul{margin:0 0 10px 20px}
@@ -59,11 +61,10 @@ footer a{color:var(--sub)}
 </style>
 </head>
 <body>
-<main>
-<a class="home" href="../../">부엌강아지 미니게임 실험실</a>
+<main class="game">
 <div class="head"><h1>밀어서 10</h1><span class="tag">진행 중</span></div>
-<p class="meta">가로, 세로 직선만, 4개 이상 이으면 횟수 +1</p>
 <div class="play"><iframe src="game.html" title="밀어서 10 게임" allow="fullscreen" loading="eager"></iframe></div>
+<p class="meta under">가로, 세로 직선만, 4개 이상 이으면 횟수 +1</p>
 <a class="full" href="game.html">전체 화면으로 하기</a>
 <h2>하는 법</h2>
 <div class="prose"><p>바깥 화살표를 누르거나 줄을 스와이프하면 줄이 한 칸씩 밀려요. 끝에서 빠진 블록은 반대편으로 넘어와요. 가로나 세로로 3개 이상 붙은 숫자의 합이 10이면 터져요. 0은 합은 그대로 두고 개수만 늘려줘요. 4개 이상으로 터뜨리면 횟수가 1번 늘어나요.</p></div>

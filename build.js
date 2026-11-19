@@ -92,7 +92,9 @@ a.sq{aspect-ratio:5/4;min-height:max-content;display:flex;flex-direction:column;
 .head h1{margin:0}
 .meta{color:var(--sub);font-size:14px;margin-bottom:16px}
 .play{margin:0 -16px;background:var(--card);border-radius:16px;overflow:hidden;box-shadow:0 3px 0 var(--line)}
-.play iframe{display:block;width:100%;height:min(calc(100svh - 40px),860px);border:0;background:var(--bg)}
+.play iframe{display:block;width:100%;height:min(calc(100svh - 64px),860px);border:0;background:var(--bg)}
+main.game{padding-top:12px}
+.meta.under{margin:10px 0 0}
 .full{display:inline-block;margin-top:12px;font-family:"Jua",sans-serif;font-size:18px;background:#e2553f;color:#fff;text-decoration:none;padding:8px 18px;border-radius:999px}
 .prose p{margin-bottom:10px}
 .prose ul{margin:0 0 10px 20px}
@@ -165,10 +167,10 @@ function footer(base) {
 // 공통 머리말 (목록 페이지 말고 나머지 페이지 맨 위)
 const topLink = base => `<a class="home" href="${base}">${esc(config.siteName)}</a>`;
 
-function page({ title, desc, canonical, base, body }) {
+function page({ title, desc, canonical, base, body, mainClass }) {
   return `${head({ title, desc, canonical })}
 <body>
-<main>
+<main${mainClass ? ` class="${mainClass}"` : ''}>
 ${body}
 ${footer(base)}
 </main>
@@ -227,10 +229,10 @@ function paragraphs(text) {
 function buildGame(g) {
   const base = '../../';
   const tagCls = STATUS_CLASS[g.status] ? ' ' + STATUS_CLASS[g.status] : '';
-  const body = `${topLink(base)}
-<div class="head"><h1>${esc(g.title)}</h1><span class="tag${tagCls}">${esc(g.status)}</span></div>
-<p class="meta">${esc(summaryText(g))}</p>
+  // 폰에서 게임이 한 화면에 들어오게: 사이트 제목 없이 게임 제목 바로 아래 게임, 설명은 게임 아래
+  const body = `<div class="head"><h1>${esc(g.title)}</h1><span class="tag${tagCls}">${esc(g.status)}</span></div>
 <div class="play"><iframe src="game.html" title="${esc(g.title)} 게임" allow="fullscreen" loading="eager"></iframe></div>
+<p class="meta under">${esc(summaryText(g))}</p>
 <a class="full" href="game.html">전체 화면으로 하기</a>
 ${g.ranking ? `<div class="ranking" id="ranking"></div>
 <script src="${base}ranking.js"></script>
@@ -243,6 +245,7 @@ ${g.story ? `<h2>만든 이야기</h2>\n<div class="prose">${paragraphs(g.story)
     title: `${g.title} | ${config.siteName}`,
     desc: summaryText(g),
     canonical: `${siteUrl}games/${g.slug}/`,
+    mainClass: 'game',
     base,
     body,
   }));
