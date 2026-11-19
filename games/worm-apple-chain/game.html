@@ -58,9 +58,9 @@ const GOLD = 99; // 황금 사과는 지금 안 씀
 const COLOR = ['#e5483a', '#86c440', '#f3c43a', '#9b6bd3', '#3f8fe0', '#ff7eb6', '#ff9a2e'];
 // 점수에 따라 사과 색 수가 늘어남 (난이도 조절은 여기서)
 const COLOR_STEPS = [[0, 4], [3000, 5], [8000, 6], [20000, 7]];
-// 6개 이상 이으면 받는 시간 (초): 6~8개 +2, 9~11개 +3, 12~14개 +4 ... (3개 더 이을 때마다 +1초)
+// 6개 이상 이으면 받는 시간 (초): 6~7개 +2, 8~9개 +3, 10~11개 +4 ... (2개 더 이을 때마다 +1초)
 const BONUS_FROM = 6;
-function timeBonus(n) { return n < BONUS_FROM ? 0 : 2 + Math.floor((n - BONUS_FROM) / 3); }
+function timeBonus(n) { return n < BONUS_FROM ? 0 : 2 + Math.floor((n - BONUS_FROM) / 2); }
 function colorCount() { let k = COLOR_STEPS[0][1]; for (const [sc, n] of COLOR_STEPS) if (score >= sc) k = n; return k; }
 const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
 const $ = id => document.getElementById(id);
