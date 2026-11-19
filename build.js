@@ -142,8 +142,24 @@ function analytics() {
   return `<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "${esc(config.analyticsToken)}"}'></script>`;
 }
 
+// 문의 메일: 주소를 HTML 에 그대로 쓰지 않고, 글자 코드를 섞어 두었다가 자바스크립트로 조합한다
+const MAIL_SHIFT = 7;
+const mailOn = !!config.contactEmail;
+// label 이 있으면 그 글자를 보여주고, 없으면 메일 주소를 보여준다
+function mailLink(label) {
+  if (!mailOn) return '';
+  return `<a class="mail" href="#"${label ? ' data-keep' : ''}>${label ? esc(label) : '메일 주소 보기'}</a><noscript> (메일 주소는 자바스크립트를 켜면 보여요)</noscript>`;
+}
+function mailScript() {
+  if (!mailOn) return '';
+  const codes = [...config.contactEmail].map(c => c.charCodeAt(0) + MAIL_SHIFT).reverse();
+  return `<script>(function(){var m=String.fromCharCode.apply(null,[${codes.join(',')}].reverse().map(function(n){return n-${MAIL_SHIFT}}));` +
+    `document.querySelectorAll('a.mail').forEach(function(a){a.href='mai'+'lto:'+m;if(!a.hasAttribute('data-keep'))a.textContent=m;});})();</script>`;
+}
+
 function footer(base) {
-  return `<footer>만든 사람: ${esc(config.author)} · <a href="${base}about.html">소개</a> · <a href="${base}privacy.html">개인정보처리방침</a></footer>`;
+  const mail = mailOn ? ` · ${mailLink('문의')}` : '';
+  return `<footer>만든 사람: ${esc(config.author)} · <a href="${base}about.html">소개</a> · <a href="${base}privacy.html">개인정보처리방침</a>${mail}</footer>`;
 }
 
 // 공통 머리말 (목록 페이지 말고 나머지 페이지 맨 위)
@@ -156,6 +172,7 @@ function page({ title, desc, canonical, base, body }) {
 ${body}
 ${footer(base)}
 </main>
+${mailScript()}
 ${analytics()}
 </body>
 </html>
@@ -264,7 +281,8 @@ function applyIf(html) {
 }
 
 function buildPage(name, title) {
-  const src = applyIf(fs.readFileSync(path.join(ROOT, 'pages', name), 'utf8')).trim();
+  // <!-- mail --> 자리에 문의 메일 링크를 넣는다
+  const src = applyIf(fs.readFileSync(path.join(ROOT, 'pages', name), 'utf8')).replace(/<!-- mail -->/g, () => mailLink()).trim();
   write(name, page({
     title: `${title} | ${config.siteName}`,
     desc: `${config.siteName} ${title}`,

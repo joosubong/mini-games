@@ -1,10 +1,10 @@
 # 미니게임 사이트 작업 규칙
 
 ## 구조
-- `config.json`: 사이트 설정. `adsEnabled`, `adsenseClient`, `adsenseSlot`, `analyticsToken`, `sections`(목록 섹션 순서와 모양: `grid2`, `grid3`, `list`)
+- `config.json`: 사이트 설정. `adsEnabled`, `adsenseClient`, `adsenseSlot`, `analyticsToken`, `contactEmail`(문의 메일, 비우면 안 나옴), `sections`(목록 섹션 순서와 모양: `grid2`, `grid3`, `list`)
 - `games.json`: 게임 목록. 항목 순서가 섹션 안 카드 순서
 - `games/<slug>/game.html`: 게임 원본
-- `pages/about.html`, `pages/privacy.html`: 본문만 적는 원본. `<!-- if:ads -->`, `<!-- if:analytics -->` ... `<!-- endif -->` 는 설정이 켜졌을 때만 남음
+- `pages/about.html`, `pages/privacy.html`: 본문만 적는 원본. `<!-- if:ads -->`, `<!-- if:analytics -->` ... `<!-- endif -->` 는 설정이 켜졌을 때만 남음. `<!-- mail -->` 자리에 문의 메일 링크가 들어감
 - `build.js`: Node 기본 모듈만 사용. 외부 패키지 추가 금지
 - `docs/`: 빌드 결과. 손으로 고치지 말고 `node build.js` 로 다시 만든 뒤 커밋
 - `assets/ranking.js`: 공통 랭킹 화면. 빌드가 `docs/ranking.js` 로 복사
@@ -32,6 +32,7 @@
 4. 커밋 후 푸시 (push 전에는 사용자에게 먼저 물어보기)
 
 ## 규칙
+- 메일 주소는 HTML 에 그대로 쓰지 않는다. `config.json` 의 `contactEmail` 만 고치면 빌드가 자바스크립트로 조합해서 보여준다
 - 코드, 주석, 문서 어디에도 em dash 문자(U+2014)를 쓰지 않는다
 - 주석은 한국어로 짧게
 - `game.html` 안의 게임 로직은 건드리지 않는다. 옮기거나 복사만 한다 (예외: 랭킹용 `Ranking.show` 한 줄)

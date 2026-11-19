@@ -21,7 +21,7 @@ https://joosubong.github.io/mini-games/
 
 ## 구조
 
-- `config.json` 사이트 설정 (광고, 통계 켜고 끄기, 목록 섹션 순서)
+- `config.json` 사이트 설정 (광고, 통계 켜고 끄기, 문의 메일 contactEmail, 목록 섹션 순서)
 - `games.json` 게임 목록
 - `games/<slug>/game.html` 게임 원본
 - `pages/` 소개, 개인정보처리방침 원본
