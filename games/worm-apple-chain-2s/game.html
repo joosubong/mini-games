@@ -42,7 +42,7 @@ button:focus-visible{outline:3px solid #7cc36a;outline-offset:3px}
 <div id="wrap">
   <div id="hud">
     <div class="box">점수 <b id="score">0</b></div>
-    <div class="box">시간 <b id="time">60</b></div>
+    <div class="box">시간 <b id="time">120</b></div>
     <div class="box">최고 <b id="best">0</b></div>
   </div>
   <div id="timebar"><div id="timefill"></div></div>
@@ -52,15 +52,13 @@ button:focus-visible{outline:3px solid #7cc36a;outline-offset:3px}
 <div id="overlay"><div id="panel"></div></div>
 <script>
 {
-const COLS = 8, ROWS = 14, TIME = 60, MIN_CHAIN = 3;
+const COLS = 8, ROWS = 14, TIME = 120, MIN_CHAIN = 3;
 const GOLD = 99; // 황금 사과는 지금 안 씀
 // 사과 색: 빨강, 초록, 노랑, 보라, 파랑, 분홍, 주황
 const COLOR = ['#e5483a', '#86c440', '#f3c43a', '#9b6bd3', '#3f8fe0', '#ff7eb6', '#ff9a2e'];
 // 점수에 따라 사과 색 수가 늘어남 (난이도 조절은 여기서)
-const COLOR_STEPS = [[0, 5]]; // 이 버전은 색이 늘지 않음 (5색 고정)
-// 6개 이상 이으면 받는 시간 (초): 6~7개 +2, 8~9개 +3, 10~11개 +4 ... (2개 더 이을 때마다 +1초)
-const BONUS_FROM = 6;
-function timeBonus(n) { return n < BONUS_FROM ? 0 : 2 + Math.floor((n - BONUS_FROM) / 2); }
+const COLOR_STEPS = [[0, 4]]; // 이 버전은 색이 늘지 않음 (4색 고정)
+// 이 버전은 사과를 먹어도 시간이 늘지 않음 (2분 고정, 그 안에 최고 점수)
 function colorCount() { let k = COLOR_STEPS[0][1]; for (const [sc, n] of COLOR_STEPS) if (score >= sc) k = n; return k; }
 const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
 const $ = id => document.getElementById(id);
@@ -71,10 +69,10 @@ let state = 'menu', anim = null, score = 0, timeLeft = TIME, best = 0;
 let popups = [], msgTimer = 0, lastT = 0;
 
 // 기록 저장 이름 (이름을 바꾸면 기록이 처음부터 다시 시작됨)
-const REC = 'wormApple2s_v2_';
+const REC = 'wormApple2s_v3_'; // 2분 고정 규칙부터 새 기록
 let bestPlay = 0; // 최고 점수 판의 플레이 시간
 try { best = +localStorage.getItem(REC + 'best') || 0; bestPlay = +localStorage.getItem(REC + 'bestPlay') || 0; } catch (e) {}
-function showBest() { $('best').textContent = best + (best ? ' (' + fmtTime(bestPlay) + ')' : ''); }
+function showBest() { $('best').textContent = best; }
 
 function resize() {
   const maxW = Math.min(window.innerWidth - 12, 520);
@@ -192,7 +190,6 @@ function finishEat() {
   const before = colorCount();
   score += pts;
   let text = '';
-  if (n >= BONUS_FROM) { const tb = timeBonus(n); timeLeft = Math.min(TIME, timeLeft + tb); text = '+' + tb + '초!'; }
   if (colorCount() > before) text = '새로운 색 사과 등장!';
   if (text) setMsg(text);
   const lp = anim.pts[anim.pts.length - 1];
@@ -240,8 +237,8 @@ function gameOver() {
   if (newBest) { best = score; bestPlay = pt; try { localStorage.setItem(REC + 'best', best); localStorage.setItem(REC + 'bestPlay', bestPlay); } catch (e) {} }
   if (pt > bestTime) { bestTime = pt; try { localStorage.setItem(REC + 'bestTime', bestTime); } catch (e) {} }
   showBest();
-  showPanel('<h1>' + (newBest ? '최고 기록!' : '시간 끝!') + '</h1><div class="big">' + score + '점</div><p>플레이 시간 ' + fmtTime(pt) + '<br>최고 점수 ' + best + '점 (' + fmtTime(bestPlay) + ')<br>최장 플레이 ' + fmtTime(bestTime) + '</p><button id="go">다시 하기</button>');
-  if (window.Ranking) Ranking.show({ game: 'worm-apple-chain-2s', score: score, playTime: playTime });
+  showPanel('<h1>' + (newBest ? '최고 기록!' : '시간 끝!') + '</h1><div class="big">' + score + '점</div><p>최고 점수 ' + best + '점</p><button id="go">다시 하기</button>');
+  if (window.Ranking) Ranking.show({ game: 'worm-apple-chain-2s', score: score });
 }
 
 function showPanel(html) {
@@ -374,7 +371,7 @@ function loop(now) {
 resize();
 showBest();
 fillBoard();
-showPanel('<h1>애벌레 사과 이어먹기</h1><p>같은 색 사과를 3개 이상 손가락으로 이어주세요.<br>애벌레가 줄을 따라 냠냠 먹어요.<br>길게 이을수록 점수가 훨씬 커져요!</p><button id="go">시작</button>');
+showPanel('<h1>애벌레 사과 이어먹기</h1><p>같은 색 사과를 3개 이상 손가락으로 이어주세요.<br>애벌레가 줄을 따라 냠냠 먹어요.<br>길게 이을수록 점수가 훨씬 커져요!<br>2분 동안 최고 점수에 도전!</p><button id="go">시작</button>');
 requestAnimationFrame(loop);
 }
 </script>
