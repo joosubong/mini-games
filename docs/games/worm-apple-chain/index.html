@@ -49,6 +49,7 @@ a.sq{aspect-ratio:5/4;min-height:max-content;display:flex;flex-direction:column;
 .prose p{margin-bottom:10px}
 .prose ul{margin:0 0 10px 20px}
 .back{display:inline-block;margin-top:28px;font-family:"Jua",sans-serif;font-size:18px}
+.ranking{margin-top:28px;min-height:60px}
 .ad{margin:20px 0;min-height:100px;text-align:center}
 footer{margin-top:28px;font-size:13px;color:var(--sub)}
 footer a{color:var(--sub)}
@@ -64,6 +65,9 @@ footer a{color:var(--sub)}
 <p class="meta">6개 +2초, 9개 +3초, 12개 +4초, 사과 3000점 파랑 추가, 사과 8000점 분홍 추가, 사과 20000점 주황 추가</p>
 <div class="play"><iframe src="game.html" title="애벌레 사과 게임" allow="fullscreen" loading="eager"></iframe></div>
 <a class="full" href="game.html">전체 화면으로 하기</a>
+<div class="ranking" id="ranking"></div>
+<script src="../../ranking.js"></script>
+<script>Ranking.board(document.getElementById('ranking'), "worm-apple-chain");</script>
 <h2>하는 법</h2>
 <div class="prose"><p>같은 색 사과를 손가락으로 3개 이상 이어주세요. 애벌레가 줄을 따라가며 사과를 먹어요. 6개 이상 이으면 시간이 늘어나고, 길게 이을수록 더 많이 늘어나요. 점수가 오르면 파랑, 분홍, 주황 사과가 차례로 나와서 점점 어려워져요.</p></div>
 <h2>만든 이야기</h2>

@@ -9,6 +9,16 @@ https://joosubong.github.io/mini-games/
 3. `node build.js`
 4. 커밋, 푸시 (`docs/` 폴더도 같이)
 
+## 랭킹 켜는 법
+
+1. `games.json` 그 게임 항목에 `"ranking": true` (필요하면 `"maxScore": 숫자` 로 점수 상한)
+2. `game.html` 의 `gameOver` 함수 끝에 한 줄 추가
+   `if (window.Ranking) Ranking.show({ game: '<slug>', score: score, playTime: playTime });`
+   (플레이 시간 변수가 없으면 `playTime` 은 빼도 됨)
+3. `node build.js`
+
+욕설 목록은 `badwords.json` 에 추가하면 됨. 서버는 `functions/api/ranking.js`, DB 스키마는 `schema.sql`.
+
 ## 구조
 
 - `config.json` 사이트 설정 (광고, 통계 켜고 끄기, 목록 섹션 순서)
@@ -17,3 +27,5 @@ https://joosubong.github.io/mini-games/
 - `pages/` 소개, 개인정보처리방침 원본
 - `build.js` 사이트 만드는 스크립트 (Node 만 있으면 됨)
 - `docs/` 만들어진 사이트 (GitHub Pages, Cloudflare Pages 가 여기를 공개)
+- `assets/ranking.js` 게임들이 같이 쓰는 랭킹 화면 (빌드 때 `docs/ranking.js` 로 복사)
+- `functions/` Cloudflare Pages Functions (랭킹 API, D1 바인딩 이름 `DB`)

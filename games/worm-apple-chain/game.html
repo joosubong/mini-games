@@ -232,6 +232,7 @@ function gameOver() {
   if (score > best) { best = score; try { localStorage.setItem('wormChainBest', best); } catch (e) {} }
   $('best').textContent = best;
   showPanel('<h1>시간 끝!</h1><div class="big">' + score + '점</div><p>최고 점수 ' + best + '점</p><button id="go">다시 하기</button>');
+  if (window.Ranking) Ranking.show({ game: 'worm-apple-chain', score: score });
 }
 
 function showPanel(html) {

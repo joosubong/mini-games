@@ -1,6 +1,8 @@
 [
   {
     "slug": "worm-apple-chain-2s",
+    "ranking": true,
+    "maxScore": 10000000,
     "title": "애벌레 사과",
     "status": "진행 중",
     "section": "애벌레 사과",
@@ -11,6 +13,8 @@
   },
   {
     "slug": "worm-apple-chain",
+    "ranking": true,
+    "maxScore": 10000000,
     "title": "애벌레 사과",
     "status": "진행 중",
     "section": "애벌레 사과",

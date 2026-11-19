@@ -27,6 +27,8 @@ for (const g of games) {
   seen.add(g.slug);
   if (g.status && !(g.status in STATUS_CLASS)) errors.push(`${where}: status 는 ${Object.keys(STATUS_CLASS).join(', ')} 중 하나`);
   if (g.slug && !fs.existsSync(path.join(ROOT, 'games', g.slug, 'game.html'))) errors.push(`${where}: games/${g.slug}/game.html 없음`);
+  if ('ranking' in g && typeof g.ranking !== 'boolean') errors.push(`${where}: ranking 은 true 또는 false`);
+  if ('maxScore' in g && !(Number.isSafeInteger(g.maxScore) && g.maxScore > 0)) errors.push(`${where}: maxScore 는 0보다 큰 정수`);
 }
 if (errors.length) {
   console.error('빌드 중단:\n- ' + errors.join('\n- '));
@@ -95,6 +97,7 @@ a.sq{aspect-ratio:5/4;min-height:max-content;display:flex;flex-direction:column;
 .prose p{margin-bottom:10px}
 .prose ul{margin:0 0 10px 20px}
 .back{display:inline-block;margin-top:28px;font-family:"Jua",sans-serif;font-size:18px}
+.ranking{margin-top:28px;min-height:60px}
 .ad{margin:20px 0;min-height:100px;text-align:center}
 footer{margin-top:28px;font-size:13px;color:var(--sub)}
 footer a{color:var(--sub)}
@@ -212,6 +215,9 @@ function buildGame(g) {
 <p class="meta">${esc(summaryText(g))}</p>
 <div class="play"><iframe src="game.html" title="${esc(g.title)} 게임" allow="fullscreen" loading="eager"></iframe></div>
 <a class="full" href="game.html">전체 화면으로 하기</a>
+${g.ranking ? `<div class="ranking" id="ranking"></div>
+<script src="${base}ranking.js"></script>
+<script>Ranking.board(document.getElementById('ranking'), ${JSON.stringify(g.slug)});</script>` : ''}
 ${adSlot()}
 ${g.howTo ? `<h2>하는 법</h2>\n<div class="prose">${paragraphs(g.howTo)}</div>` : ''}
 ${g.story ? `<h2>만든 이야기</h2>\n<div class="prose">${paragraphs(g.story)}</div>` : ''}
@@ -223,8 +229,13 @@ ${g.story ? `<h2>만든 이야기</h2>\n<div class="prose">${paragraphs(g.story)
     base,
     body,
   }));
-  // 게임 파일은 그대로 복사 (내용 수정 없음)
-  fs.copyFileSync(path.join(ROOT, 'games', g.slug, 'game.html'), path.join(OUT, 'games', g.slug, 'game.html'));
+  // 게임 파일은 그대로 복사. 랭킹이 켜진 게임만 </head> 앞에 랭킹 스크립트 한 줄을 넣는다
+  let html = fs.readFileSync(path.join(ROOT, 'games', g.slug, 'game.html'), 'utf8');
+  if (g.ranking) {
+    if (!html.includes('</head>')) throw new Error(`games/${g.slug}/game.html 에 </head> 가 없어 랭킹 스크립트를 넣을 수 없음`);
+    html = html.replace('</head>', `<script src="${base}ranking.js"></script>\n</head>`);
+  }
+  write(`games/${g.slug}/game.html`, html);
 }
 
 // 예전 주소 (루트의 <slug>.html) 에서 새 게임 페이지로 이동
@@ -285,6 +296,7 @@ ${urls.map(u => `  <url><loc>${esc(u.loc)}</loc>${u.lastmod ? `<lastmod>${u.last
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(OUT, { recursive: true });
 write('.nojekyll', ''); // GitHub Pages 가 파일을 그대로 쓰게
+fs.copyFileSync(path.join(ROOT, 'assets', 'ranking.js'), path.join(OUT, 'ranking.js'));
 buildIndex();
 games.forEach(buildGame);
 games.forEach(buildRedirect);

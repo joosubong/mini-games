@@ -37,6 +37,7 @@ button{font:inherit;font-size:19px;background:#e2553f;color:#fff;border:0;border
 button:active{transform:translateY(2px);box-shadow:0 2px 0 #a83727}
 button:focus-visible{outline:3px solid #7cc36a;outline-offset:3px}
 </style>
+<script src="../../ranking.js"></script>
 </head>
 <body>
 <div id="wrap">
@@ -232,6 +233,7 @@ function gameOver() {
   if (score > best) { best = score; try { localStorage.setItem('wormChainBest', best); } catch (e) {} }
   $('best').textContent = best;
   showPanel('<h1>시간 끝!</h1><div class="big">' + score + '점</div><p>최고 점수 ' + best + '점</p><button id="go">다시 하기</button>');
+  if (window.Ranking) Ranking.show({ game: 'worm-apple-chain', score: score });
 }
 
 function showPanel(html) {

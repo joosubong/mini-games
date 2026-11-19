@@ -49,6 +49,7 @@ a.sq{aspect-ratio:5/4;min-height:max-content;display:flex;flex-direction:column;
 .prose p{margin-bottom:10px}
 .prose ul{margin:0 0 10px 20px}
 .back{display:inline-block;margin-top:28px;font-family:"Jua",sans-serif;font-size:18px}
+.ranking{margin-top:28px;min-height:60px}
 .ad{margin:20px 0;min-height:100px;text-align:center}
 footer{margin-top:28px;font-size:13px;color:var(--sub)}
 footer a{color:var(--sub)}
@@ -64,6 +65,9 @@ footer a{color:var(--sub)}
 <p class="meta">4색 고정, 7개 +2초, 10개 +3초, 13개 +4초</p>
 <div class="play"><iframe src="game.html" title="애벌레 사과 게임" allow="fullscreen" loading="eager"></iframe></div>
 <a class="full" href="game.html">전체 화면으로 하기</a>
+<div class="ranking" id="ranking"></div>
+<script src="../../ranking.js"></script>
+<script>Ranking.board(document.getElementById('ranking'), "worm-apple-chain-2s");</script>
 <h2>하는 법</h2>
 <div class="prose"><p>같은 색 사과를 손가락으로 3개 이상 이어주세요. 애벌레가 이은 줄을 따라 사과를 냠냠 먹어요. 길게 이을수록 점수가 훨씬 커지고, 7개 이상 이으면 시간도 늘어나요. 사과 색은 4가지로 고정이라 긴 줄을 노리기 좋아요. 60초 안에 최고 점수에 도전해보세요.</p></div>
 <h2>만든 이야기</h2>

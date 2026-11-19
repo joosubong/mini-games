@@ -241,6 +241,7 @@ function gameOver() {
   if (pt > bestTime) { bestTime = pt; try { localStorage.setItem(REC + 'bestTime', bestTime); } catch (e) {} }
   showBest();
   showPanel('<h1>' + (newBest ? '최고 기록!' : '시간 끝!') + '</h1><div class="big">' + score + '점</div><p>플레이 시간 ' + fmtTime(pt) + '<br>최고 점수 ' + best + '점 (' + fmtTime(bestPlay) + ')<br>최장 플레이 ' + fmtTime(bestTime) + '</p><button id="go">다시 하기</button>');
+  if (window.Ranking) Ranking.show({ game: 'worm-apple-chain-2s', score: score, playTime: playTime });
 }
 
 function showPanel(html) {
