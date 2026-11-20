@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<script>(function(){var p=function(e){e.preventDefault()};['gesturestart','gesturechange','gestureend'].forEach(function(t){document.addEventListener(t,p,{passive:false})});document.addEventListener('touchmove',function(e){if(e.touches.length>1)e.preventDefault()},{passive:false});})();</script>
+<title>우체국 손맛 테스트 | 부엌강아지 미니게임 실험실</title>
+<meta name="description" content="도장, 분류, 끈 묶기, 영수증 터치 손맛 프로토">
+<link rel="canonical" href="https://joosubong.github.io/mini-games/games/post-office/">
+<meta property="og:title" content="우체국 손맛 테스트 | 부엌강아지 미니게임 실험실">
+<meta property="og:description" content="도장, 분류, 끈 묶기, 영수증 터치 손맛 프로토">
+<meta property="og:url" content="https://joosubong.github.io/mini-games/games/post-office/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light dark;--bg:light-dark(#fdf3e1,#2a2018);--ink:light-dark(#4a3426,#f6e7d0);--card:light-dark(#fffaf0,#3a2c20);--line:light-dark(#e4cfae,#5a4430);--sub:light-dark(#7a6250,#cbb79f)}
+*{box-sizing:border-box;margin:0;padding:0}
+html{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+main{max-width:640px;margin:0 auto;padding:32px 16px 48px}
+a{color:inherit}
+h1{font-family:"Jua",sans-serif;font-size:34px;line-height:1.1;margin-bottom:8px}
+h2{font-family:"Jua",sans-serif;font-size:24px;line-height:1.2;margin:28px 0 8px}
+.lead{color:var(--sub);margin-bottom:24px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.three a.sq{aspect-ratio:auto;min-height:150px}
+.list{display:grid;gap:14px;margin-bottom:14px}
+a.card{display:block;text-decoration:none;color:inherit;background:var(--card);border-radius:16px;padding:16px 18px;box-shadow:0 3px 0 var(--line);transition:transform .15s}
+a.card:hover{transform:translateY(-2px)}
+a.card:focus-visible{outline:3px solid #e2553f;outline-offset:3px}
+a.sq{aspect-ratio:5/4;min-height:max-content;display:flex;flex-direction:column;justify-content:space-between;padding:14px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px}
+.name{font-family:"Jua",sans-serif;font-size:22px;line-height:1.2}
+.sq .name{font-size:20px}
+.sub{display:block;font-family:"Jua",sans-serif;font-size:14px;line-height:1.35;color:var(--sub);margin-top:4px}
+.ln{display:flex;align-items:center;gap:4px;white-space:nowrap}
+.ap{width:18px;height:18px;flex:none}
+.tag{font-size:13px;padding:2px 10px;border-radius:999px;white-space:nowrap;background:#e2553f;color:#fff;align-self:flex-start}
+.tag.try{background:#8b6b4a}
+.tag.old{background:#b3a593}
+.desc{color:var(--sub);font-size:15px}
+.home{display:inline-block;font-family:"Jua",sans-serif;font-size:17px;color:var(--sub);text-decoration:none;margin-bottom:18px}
+.home:hover{color:var(--ink)}
+.head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.head h1{margin:0}
+.meta{color:var(--sub);font-size:14px;margin-bottom:16px}
+.btns{display:flex;gap:10px;margin:4px 0 8px}
+.btn{flex:1;display:flex;align-items:center;justify-content:center;min-height:58px;font-family:"Jua",sans-serif;font-size:22px;background:#e2553f;color:#fff;text-decoration:none;border-radius:16px;box-shadow:0 4px 0 #a83727}
+.btn.sub2{background:#8b6b4a;box-shadow:0 4px 0 #5e4630}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 #a83727}
+.btn:focus-visible{outline:3px solid #7cc36a;outline-offset:3px}
+.howto{background:var(--card);border-radius:16px;padding:4px 18px 8px;margin-top:14px;box-shadow:0 3px 0 var(--line)}
+.howto h2{margin-top:12px}
+.prose p{margin-bottom:10px}
+.prose ul{margin:0 0 10px 20px}
+.back{display:inline-block;margin-top:28px;font-family:"Jua",sans-serif;font-size:18px}
+.ranking{margin-top:28px;min-height:60px}
+.ad{margin:20px 0;min-height:100px;text-align:center}
+footer{margin-top:28px;font-size:13px;color:var(--sub)}
+footer a{color:var(--sub)}
+@media (max-width:480px){.sq .name{font-size:17px}.sub{font-size:12px}a.sq{padding:12px}.tag{font-size:12px;padding:2px 8px}}
+@media (prefers-reduced-motion:reduce){a.card{transition:none}}
+</style>
+</head>
+<body>
+<main>
+<div class="head"><h1>우체국 손맛 테스트</h1><span class="tag try">실험 중</span></div>
+<p class="meta">도장, 분류, 끈 묶기, 영수증 터치 손맛 프로토</p>
+<div class="btns"><a class="btn" href="play.html">게임하기</a><a class="btn sub2" href="#howto" id="howtoBtn" aria-controls="howto" aria-expanded="false">하는 법</a></div>
+<section class="howto prose" id="howto" hidden><h2>하는 법</h2>
+<p>위 탭에서 도장, 분류, 끈 묶기, 영수증 중 하나를 골라요. 도장은 빨간 칸이 지나갈 때 봉투를 톡 쳐서 박자에 맞춰 찍어요. 분류는 좌우로 밀어 칸을 고르고, 손 위 봉투를 위로 슉 튕겨 같은 색 칸에 넣어요. 끈 묶기는 화면을 좌우로 마구 문지르고, 영수증은 아래로 쭉 당기다가 점선이 나오면 가로로 슥 잘라요.</p></section>
+<noscript><style>#howto[hidden]{display:block}</style></noscript>
+<script>(function(){var b=document.getElementById('howtoBtn'),s=document.getElementById('howto');
+function set(o){s.hidden=!o;b.setAttribute('aria-expanded',o)}
+if(location.hash==='#howto')set(true);
+b.addEventListener('click',function(e){e.preventDefault();set(s.hidden);if(!s.hidden)s.scrollIntoView({behavior:'smooth',block:'nearest'})});})();</script>
+<h2>만든 이야기</h2>
+<div class="prose"><p>우체국 일을 게임으로 만들면 어떤 손맛이 날지 궁금해서 만든 시험판이에요. 도장 찍기, 우편 분류, 끈 묶기, 영수증 자르기를 하나씩 따로 해볼 수 있게 했어요. 점수나 시간 제한 없이 터치했을 때의 느낌과 소리만 먼저 맞춰보는 중이에요.</p></div>
+<a class="back" href="../../">← 목록으로 돌아가기</a>
+<footer>만든 사람: 부엌강아지 · <a href="../../about.html">소개</a> · <a href="../../privacy.html">개인정보처리방침</a> · <a class="mail" href="#" data-keep>문의</a><noscript> (메일 주소는 자바스크립트를 켜면 보여요)</noscript></footer>
+</main>
+<script>(function(){var m=String.fromCharCode.apply(null,[116,118,106,53,121,108,125,104,117,71,112,112,112,129,112,112,112,129].reverse().map(function(n){return n-7}));document.querySelectorAll('a.mail').forEach(function(a){a.href='mai'+'lto:'+m;if(!a.hasAttribute('data-keep'))a.textContent=m;});})();</script>
+</body>
+</html>
