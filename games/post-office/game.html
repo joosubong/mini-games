@@ -38,15 +38,17 @@ h1 b{color:var(--red);font-weight:400}
 @keyframes pop{0%{opacity:0;transform:translate(-50%,10px) scale(.7)}25%{opacity:1;transform:translate(-50%,0) scale(1.1)}100%{opacity:0;transform:translate(-50%,-16px) scale(1)}}
 
 /* 도장 */
-.lanes{position:absolute;left:8px;right:8px;top:28%;height:44%;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;transition:transform .25s,opacity .25s}
-.lanes.out{transform:translateY(-50px);opacity:0}
-.lanes.pre{transform:translateY(50px);opacity:0;transition:none}
-.lane{position:relative;border-radius:12px;background:rgba(255,255,255,.18);transition:background .08s}
-.lane.beat{background:rgba(229,50,45,.16)}
-.lane .num{position:absolute;bottom:4px;left:0;right:0;text-align:center;color:var(--sub);font-size:13px}
-.env{position:absolute;left:8%;right:8%;top:30%;cursor:pointer}
-.env svg{width:100%;display:block;filter:drop-shadow(0 3px 0 rgba(0,0,0,.15))}
-.rest{position:absolute;left:14%;right:14%;top:38%;border:2px dashed var(--sub);border-radius:8px;text-align:center;padding:16px 0;color:var(--sub);font-size:14px;opacity:.6}
+.seq{position:absolute;top:58px;left:0;right:0;display:flex;justify-content:center;gap:6px}
+.seq i{font-style:normal;padding:4px 9px;border-radius:10px;background:var(--card);color:var(--sub);font-size:15px}
+.seq i.j{background:var(--red);color:#fff}
+.seq i.now{outline:3px solid var(--ink);outline-offset:1px}
+.stackw{position:absolute;left:50%;top:52%;width:min(46%,190px);aspect-ratio:80/106;transform:translate(-50%,-50%);cursor:pointer}
+#stack,#done{position:absolute;inset:0}
+.senv{position:absolute;inset:0}
+.senv svg{width:100%;display:block;filter:drop-shadow(0 3px 0 rgba(0,0,0,.15))}
+.ring{position:absolute;inset:-14px;border:4px solid var(--red);border-radius:20px;opacity:0;pointer-events:none}
+.ring.go{animation:ring .3s ease-out}
+@keyframes ring{from{opacity:.55;transform:scale(.96)}to{opacity:0;transform:scale(1.06)}}
 .mark{position:absolute;left:50%;top:44%;width:44px;height:44px;margin:-22px;border:3px solid var(--red);border-radius:50%;color:var(--red);font-size:11px;display:grid;place-items:center;line-height:1.05;text-align:center;animation:ink .18s ease-out;pointer-events:none;background:rgba(229,50,45,.06)}
 .mark.big{width:54px;height:54px;margin:-27px;border-width:4px;font-size:13px}
 @keyframes ink{from{transform:scale(1.5) rotate(var(--r));opacity:0}to{transform:scale(1) rotate(var(--r));opacity:.92}}
@@ -121,11 +123,12 @@ h1 b{color:var(--red);font-weight:400}
 </header>
 <main id="stage">
   <section class="mode on" id="m-stamp">
-    <div class="hud"><span>찍은 줄 <span class="n" id="sCount">0</span></span>
+    <div class="hud"><span>찍은 봉투 <span class="n" id="sCount">0</span></span>
       <span class="ctrl"><button id="bpmDn">-</button><span id="bpmV">96</span><button id="bpmUp">+</button><button id="guide">박자 켬</button></span></div>
-    <div class="lanes" id="lanes"></div>
+    <div class="seq" id="seq"></div>
+    <div class="stackw"><div class="ring" id="ring"></div><div id="stack"></div><div id="done"></div></div>
     <div class="pop" id="sJudge"></div>
-    <div class="help">빨간 칸이 지나갈 때 봉투를 탭! 빈 칸은 쉬는 박자</div>
+    <div class="help">박자에 맞춰 봉투 더미를 탭! 빨간 봉투는 짝</div>
   </section>
   <section class="mode" id="m-sort">
     <div class="hud"><span>분류 <span class="n" id="oCount">0</span> 놓침 <span class="n" id="oMiss">0</span></span><span id="oMsg"></span></div>
@@ -193,43 +196,38 @@ document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
 });
 
 /* ---------- 1. 도장 ---------- */
-const PATTERNS=[[1,0,1,0,1],[1,1,1,0,1],[1,1,0,1,1],[1,0,1,1,1],[1,1,1,1,1],[1,0,0,1,1],[1,1,1,0,1]];
-let bpm=96,guide=true,t0=performance.now(),lastB=-1,pat=[],done=[],rows=0,busy=false;
-const lanesEl=$('#lanes');
+/* 쿵(0), 짝(1) 묶음. 짝은 가끔 중간중간 */
+const BEATS=[[0,0,1],[0,0,0,1],[0,1,0,1],[0,0,0,0,1],[0,0,1,0,0,0,1]];
+let bpm=96,guide=true,t0=performance.now(),lastB=-1,q=[],stamped=0;
+const stackEl=$('#stack'),doneEl=$('#done'),seqEl=$('#seq');
 function envV(special){const c=special?'#ffd9d6':'#fffaf0',s=special?'#e5322d':'rgba(0,0,0,.25)';
  return `<svg viewBox="0 0 80 106"><rect x="3" y="3" width="74" height="100" rx="6" fill="${c}" stroke="${s}" stroke-width="3"/><path d="M5 8 L40 40 L75 8" fill="none" stroke="${s}" stroke-width="3" stroke-linejoin="round"/><rect x="54" y="66" width="16" height="20" rx="2" fill="${special?'#e5322d':'#6cc4f0'}" opacity=".85"/><path d="M14 70h30M14 80h24" stroke="rgba(0,0,0,.2)" stroke-width="3" stroke-linecap="round"/></svg>`}
-function newRow(){
- pat=pick(PATTERNS).slice();done=pat.map(v=>!v);
- const last=pat.lastIndexOf(1);
- lanesEl.innerHTML=pat.map((v,i)=>`<div class="lane" data-i="${i}">${v?`<div class="env">${envV(i===last)}</div><div class="stamp"><i></i><b></b></div>`:'<div class="rest">쉼</div>'}<div class="num">${i+1}</div></div>`).join('');
-}
-newRow();
-lanesEl.addEventListener('pointerdown',e=>{
- const lane=e.target.closest('.lane');if(!lane||busy)return;
- const i=+lane.dataset.i;if(!pat[i]||done[i])return;
- A();done[i]=true;
- const now=performance.now(),spb=60000/bpm,k=(now-t0)/spb,base=Math.floor(k/5)*5+i;
- const d=Math.min(...[base-5,base,base+5].map(c=>Math.abs(c-k)))*spb;
- const st=lane.querySelector('.stamp');st.classList.remove('go');void st.offsetWidth;st.classList.add('go');
- const isLast=i===pat.lastIndexOf(1);
+function renderStack(){while(q.length<12)q.push(...pick(BEATS));
+ stackEl.innerHTML=q.slice(0,4).map((v,k)=>`<div class="senv" style="transform:translate(${k*4}px,${k*6}px) rotate(${[0,-3,4,-2][k]}deg);z-index:${4-k}">${envV(v)}</div>`).join('');
+ seqEl.innerHTML=q.slice(0,7).map((v,k)=>`<i class="${v?'j':''}${k?'':' now'}">${v?'짝':'쿵'}</i>`).join('')}
+renderStack();
+$('#m-stamp').addEventListener('pointerdown',e=>{
+ if(e.target.closest('.hud'))return;A();
+ const v=q.shift(),spb=60000/bpm,k=(performance.now()-t0)/spb,d=Math.abs(k-Math.round(k))*spb;
+ /* 찍힌 봉투는 위 층으로 빼서 도장, 옆으로 치우기 */
+ const el=document.createElement('div');el.className='senv';el.innerHTML=envV(v)+'<div class="stamp go"><i></i><b></b></div>';
+ doneEl.appendChild(el);renderStack();
  setTimeout(()=>{
-  isLast?sfx.clap():sfx.thump();
-  const m=document.createElement('div');m.className='mark'+(isLast?' big':'');
+  v?sfx.clap():sfx.thump();
+  const m=document.createElement('div');m.className='mark'+(v?' big':'');
   m.style.setProperty('--r',rnd(-25,25).toFixed(0)+'deg');
-  m.innerHTML=isLast?'특급<br>소인':'소인<br>11.20';
-  lane.querySelector('.env').appendChild(m);
+  m.innerHTML=v?'특급<br>소인':'소인<br>11.20';el.appendChild(m);
  },100);
- if(guide)popText($('#sJudge'),d<70?'퍼펙트!':d<150?'좋아요':'쿵');
- if(done.every(Boolean)){busy=true;rows++;$('#sCount').textContent=rows;
-  setTimeout(()=>{lanesEl.classList.add('out');
-   setTimeout(()=>{newRow();lanesEl.classList.remove('out');lanesEl.classList.add('pre');void lanesEl.offsetWidth;lanesEl.classList.remove('pre');busy=false},250)},380)}
+ setTimeout(()=>el.animate([{transform:'none'},{transform:`translate(${rnd(150,210)}px,${rnd(-30,30)}px) rotate(${rnd(15,35)}deg)`,opacity:0}],{duration:260,easing:'ease-in',fill:'forwards'}).onfinish=()=>el.remove(),230);
+ stamped++;$('#sCount').textContent=stamped;
+ if(guide)popText($('#sJudge'),d<70?'퍼펙트!':d<150?'좋아요':v?'짝':'쿵');
 });
 $('#bpmDn').onclick=()=>{bpm=Math.max(60,bpm-8);$('#bpmV').textContent=bpm;t0=performance.now()};
 $('#bpmUp').onclick=()=>{bpm=Math.min(160,bpm+8);$('#bpmV').textContent=bpm;t0=performance.now()};
-$('#guide').onclick=e=>{guide=!guide;e.target.textContent=guide?'박자 켬':'박자 끔';if(!guide)lanesEl.querySelectorAll('.lane').forEach(l=>l.classList.remove('beat'))};
+$('#guide').onclick=e=>{guide=!guide;e.target.textContent=guide?'박자 켬':'박자 끔'};
 function loop(now){
  if(mode==='stamp'&&guide){const b=Math.floor((now-t0)/(60000/bpm));
-  if(b!==lastB){lastB=b;const ln=b%5;lanesEl.querySelectorAll('.lane').forEach((l,i)=>l.classList.toggle('beat',i===ln));if(AC)sfx.tick()}}
+  if(b!==lastB){lastB=b;const r=$('#ring');r.classList.remove('go');void r.offsetWidth;r.classList.add('go');if(AC)sfx.tick()}}
  requestAnimationFrame(loop)}
 requestAnimationFrame(loop);
 
