@@ -59,15 +59,16 @@ h1 b{color:var(--red);font-weight:400}
 .ctrl{display:flex;gap:6px;align-items:center}
 
 /* 분류 */
-.track{position:absolute;top:13%;height:40%;left:0;display:flex;gap:14px;will-change:transform}
-.track.snap{transition:transform .2s ease-out}
-.cub{flex:none;height:100%;border-radius:14px;background:light-dark(#b9875a,#7a5636);padding:10px;position:relative;box-shadow:inset 0 -8px 0 rgba(0,0,0,.18)}
+.track{position:absolute;top:13%;height:40%;left:0;width:0;will-change:transform}
+.cub{position:absolute;top:0;height:100%;border-radius:14px;background:light-dark(#b9875a,#7a5636);padding:10px;transition:opacity .3s;box-shadow:inset 0 -8px 0 rgba(0,0,0,.18)}
 .cub .face{height:100%;border-radius:8px;position:relative;overflow:hidden;box-shadow:inset 0 6px 10px rgba(0,0,0,.25)}
 .cub .lab{position:absolute;top:8px;left:0;right:0;text-align:center;font-size:20px;color:#1d2433}
 .cub .pile{position:absolute;bottom:6px;left:12%;right:12%;display:flex;flex-direction:column-reverse;gap:2px}
 .cub .pile i{height:6px;border-radius:2px;background:rgba(255,255,255,.85)}
 .cub .cnt{position:absolute;bottom:6px;right:8px;font-size:15px;color:#1d2433}
 .cub.hit{animation:hit .2s}
+.cub.past{opacity:.45}
+.cub.full .cnt{color:var(--red)}
 @keyframes hit{50%{transform:scale(1.04)}}
 .aim{position:absolute;top:calc(13% + 40% + 4px);left:50%;transform:translateX(-50%);color:var(--sub);font-size:13px}
 .hand{position:absolute;bottom:16%;left:50%;width:150px;height:100px;margin-left:-75px}
@@ -127,9 +128,9 @@ h1 b{color:var(--red);font-weight:400}
     <div class="help">빨간 칸이 지나갈 때 봉투를 탭! 빈 칸은 쉬는 박자</div>
   </section>
   <section class="mode" id="m-sort">
-    <div class="hud"><span>분류 <span class="n" id="oCount">0</span></span><span id="oMsg"></span></div>
+    <div class="hud"><span>분류 <span class="n" id="oCount">0</span> 놓침 <span class="n" id="oMiss">0</span></span><span id="oMsg"></span></div>
     <div class="track" id="track"></div>
-    <div class="aim">▲ 지금 넣을 칸 (어디서든 좌우 스와이프로 바꾸기)</div>
+    <div class="aim">▲ 여기를 지나는 칸에 넣기</div>
     <div class="palm"></div>
     <div class="hand" id="hand"></div>
     <div class="pop" id="oPop"></div>
@@ -187,7 +188,7 @@ document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
  document.querySelectorAll('.mode').forEach(x=>x.classList.remove('on'));
  mode=b.dataset.m;$('#m-'+mode).classList.add('on');
  if(mode==='stamp')t0=performance.now();
- if(mode==='sort')layoutShelf(false);
+ if(mode==='sort')layoutShelf();
  if(mode==='rcpt')newReceipt();
 });
 
@@ -234,53 +235,67 @@ requestAnimationFrame(loop);
 
 /* ---------- 2. 분류 ---------- */
 const COLS=[{n:'분홍',c:'#ff8fb1'},{n:'노랑',c:'#ffd23f'},{n:'하늘',c:'#6cc4f0'},{n:'보라',c:'#b79cf2'}];
-const counts=COLS.map(()=>0);
-let idx=0,cubW=200,gap=14,deck=[],sorted=0;
+const SPEED=55;/* 진열장 흐르는 속도 (px/초) */
+let cubW=200,gap=14,deck=[],sorted=0,missed=0,off=0,nextK=0,lastC=-1,shelves=[],sLast=0,started=false;
 const track=$('#track'),hand=$('#hand');
 function envH(c){return `<svg viewBox="0 0 150 100"><rect x="3" y="3" width="144" height="94" rx="8" fill="${c}" stroke="rgba(0,0,0,.2)" stroke-width="3"/><path d="M6 8 L75 56 L144 8" fill="none" stroke="rgba(0,0,0,.2)" stroke-width="4" stroke-linejoin="round"/><rect x="114" y="14" width="22" height="26" rx="3" fill="#fff" opacity=".9"/></svg>`}
-function cubHTML(i){const n=Math.min(counts[i],20);return `<div class="face" style="background:${COLS[i].c}"><div class="lab">${COLS[i].n}</div><div class="pile">${'<i></i>'.repeat(n)}</div><div class="cnt">${counts[i]}</div></div>`}
-track.innerHTML=COLS.map((c,i)=>`<div class="cub" data-i="${i}">${cubHTML(i)}</div>`).join('');
-function layoutShelf(anim,dx=0){
- const W=stage.clientWidth;cubW=Math.min(W*.62,260);
- track.querySelectorAll('.cub').forEach(c=>c.style.width=cubW+'px');
- track.classList.toggle('snap',anim);
- track.style.transform=`translateX(${(W-cubW)/2-idx*(cubW+gap)+dx}px)`}
-let lastC=-1;
-function refill(){while(deck.length<14){let c;do{c=Math.floor(Math.random()*COLS.length)}while(c===lastC);lastC=c;const n=7+Math.floor(Math.random()*5);for(let k=0;k<n;k++)deck.push(c)}}
-function renderHand(){refill();hand.innerHTML=deck.slice(0,10).map((c,k)=>`<div class="card" style="transform:translate(${k*3}px,${k*4}px) rotate(${[-3,4,-5,3,-4,5,-2,4,-3,2][k]}deg);z-index:${10-k}">${envH(COLS[c].c)}</div>`).join('')}
-renderHand();
+function cubHTML(s){const n=Math.min(s.got,20);return `<div class="face" style="background:${COLS[s.c].c}"><div class="lab">${COLS[s.c].n}</div><div class="pile">${'<i></i>'.repeat(n)}</div><div class="cnt">${s.got}/${s.need}</div></div>`}
+const leftOf=s=>s.k*(cubW+gap)+off;
+function placeShelf(s){s.el.style.width=cubW+'px';s.el.style.left=s.k*(cubW+gap)+'px'}
+/* 진열장 하나 만들고 그 칸 몫의 편지를 같은 순서로 쌓기 (칸마다 4~9장) */
+function addShelf(){let c;do{c=Math.floor(Math.random()*COLS.length)}while(c===lastC);lastC=c;
+ const s={k:nextK++,c,need:4+Math.floor(Math.random()*6),got:0,el:document.createElement('div')};
+ s.el.className='cub';s.el.innerHTML=cubHTML(s);placeShelf(s);track.appendChild(s.el);shelves.push(s);
+ for(let i=0;i<s.need;i++)deck.push({g:s.k,c})}
+function fillShelves(){const W=stage.clientWidth;
+ while(!shelves.length||leftOf(shelves[shelves.length-1])<W+cubW)addShelf();
+ while(shelves.length&&leftOf(shelves[0])+cubW<-40)shelves.shift().el.remove()}
+function layoutShelf(){const W=stage.clientWidth;cubW=Math.min(W*.62,260);
+ if(!started){started=true;off=W/2-24}
+ shelves.forEach(placeShelf);fillShelves();track.style.transform=`translateX(${off}px)`;renderHand()}
+/* 칸이 가운데를 지나가면 남은 편지는 놓친 것으로 */
+function checkPassed(){const mid=stage.clientWidth/2;let lost=0;
+ while(deck.length){const g=deck[0].g,s=shelves.find(x=>x.k===g);
+  if(s&&leftOf(s)+cubW>=mid)break;
+  const n=deck.filter(d=>d.g===g).length;deck=deck.filter(d=>d.g!==g);lost+=n;if(s)s.el.classList.add('past')}
+ if(lost){missed+=lost;$('#oMiss').textContent=missed;$('#oMsg').textContent='놓쳤어요';sfx.buzz();renderHand()}
+ shelves.forEach(s=>{if(leftOf(s)+cubW<mid)s.el.classList.add('past')})}
+function renderHand(){hand.innerHTML=deck.slice(0,10).map((d,k)=>`<div class="card" style="transform:translate(${k*3}px,${k*4}px) rotate(${[-3,4,-5,3,-4,5,-2,4,-3,2][k]}deg);z-index:${10-k}">${envH(COLS[d.c].c)}</div>`).join('')}
+function sortLoop(now){const dt=Math.min(.05,(now-(sLast||now))/1000);sLast=now;
+ if(mode==='sort'&&started){off-=SPEED*dt;track.style.transform=`translateX(${off}px)`;fillShelves();checkPassed()}
+ requestAnimationFrame(sortLoop)}
+requestAnimationFrame(sortLoop);
 let sd=null;
 $('#m-sort').addEventListener('pointerdown',e=>{
- A();const r=stage.getBoundingClientRect(),y=e.clientY-r.top;
- sd={x:e.clientX,y:e.clientY,zone:null};
+ A();sd={x:e.clientX,y:e.clientY};
  e.currentTarget.setPointerCapture(e.pointerId)});
 $('#m-sort').addEventListener('pointermove',e=>{if(!sd)return;
  const dx=e.clientX-sd.x,dy=e.clientY-sd.y;
- if(!sd.zone&&Math.hypot(dx,dy)>10)sd.zone=Math.abs(dx)>Math.abs(dy)?'shelf':'hand';
- if(sd.zone==='shelf')layoutShelf(false,dx);
- else{const top=hand.querySelector('.card');if(top&&dy<0)top.style.transform=`translate(${dx*.3}px,${dy*.5}px)`}});
+ const top=hand.querySelector('.card');if(top&&dy<0)top.style.transform=`translate(${dx*.3}px,${dy*.5}px)`});
 $('#m-sort').addEventListener('pointerup',e=>{if(!sd)return;
  const dx=e.clientX-sd.x,dy=e.clientY-sd.y;
- if(sd.zone==='shelf'){let st=Math.round(dx/(cubW+gap));if(!st&&Math.abs(dx)>30)st=Math.sign(dx);
-  idx=Math.max(0,Math.min(COLS.length-1,idx-st));layoutShelf(true);if(st)sfx.drop()}
- else if(dy<-40)throwCard(dx);
- else renderHand();
+ if(dy<-40)throwCard(dx);else renderHand();
  sd=null});
 function throwCard(dx){
- const top=hand.querySelector('.card');if(!top)return;
- const color=deck.shift(),target=idx;
- const r=top.getBoundingClientRect(),cub=track.children[target].getBoundingClientRect();
- const fly=document.createElement('div');fly.className='fly';fly.innerHTML=envH(COLS[color].c);
+ const top=hand.querySelector('.card');if(!top||!deck.length)return;
+ const item=deck.shift(),mid=stage.clientWidth/2;
+ const target=shelves.find(s=>leftOf(s)<=mid&&mid<=leftOf(s)+cubW);
+ const r=top.getBoundingClientRect(),sr=stage.getBoundingClientRect();
+ const fly=document.createElement('div');fly.className='fly';fly.innerHTML=envH(COLS[item.c].c);
  Object.assign(fly.style,{left:r.left+'px',top:r.top+'px',width:r.width+'px',height:r.height+'px'});
  document.body.appendChild(fly);renderHand();sfx.swish(4);
- const tx=cub.left+cub.width/2-(r.left+r.width/2),ty=cub.top+cub.height*.6-(r.top+r.height/2);
+ /* 날아가는 동안 진열장이 움직이는 만큼 앞을 노림 */
+ const cub=track.getBoundingClientRect(),tx=sr.left+mid-SPEED*.24-(r.left+r.width/2),ty=cub.top+cub.height*.6-(r.top+r.height/2);
+ const ok=target&&target.k===item.g;
  fly.animate([{transform:'translate(0,0) rotate(0) scale(1)'},{transform:`translate(${tx*.5+dx*.2}px,${ty*.6}px) rotate(${rnd(-20,20)}deg) scale(.75)`},{transform:`translate(${tx}px,${ty}px) rotate(${rnd(-10,10)}deg) scale(.5)`}],{duration:240,easing:'ease-out'}).onfinish=()=>{
-  if(color===target){fly.remove();counts[target]++;sorted++;$('#oCount').textContent=sorted;
-   const c=track.children[target];c.innerHTML=cubHTML(target);c.classList.remove('hit');void c.offsetWidth;c.classList.add('hit');sfx.drop();$('#oMsg').textContent=''}
-  else{sfx.buzz();$('#oMsg').textContent='앗, 색이 달라요';deck.push(color);
+  if(ok){fly.remove();target.got++;sorted++;$('#oCount').textContent=sorted;
+   const c=target.el;c.innerHTML=cubHTML(target);c.classList.remove('hit');void c.offsetWidth;c.classList.add('hit');sfx.drop();$('#oMsg').textContent='';
+   if(target.got===target.need){c.classList.add('full');sfx.ding();popText($('#oPop'),'칸 완성!')}}
+  else{sfx.buzz();$('#oMsg').textContent=target?'앗, 색이 달라요':'칸 사이예요';deck.unshift(item);renderHand();
    fly.animate([{transform:`translate(${tx}px,${ty}px) scale(.5)`},{transform:`translate(${tx+rnd(-60,60)}px,${ty+400}px) rotate(80deg) scale(.5)`,opacity:0}],{duration:450,easing:'ease-in'}).onfinish=()=>fly.remove()}
  }}
-window.addEventListener('resize',()=>{if(mode==='sort')layoutShelf(false)});
+window.addEventListener('resize',()=>{if(mode==='sort')layoutShelf()});
+layoutShelf();
 
 /* ---------- 3. 끈 묶기 ---------- */
 const NEED=10;
