@@ -238,7 +238,7 @@ const counts=COLS.map(()=>0);
 let idx=0,cubW=200,gap=14,deck=[],sorted=0;
 const track=$('#track'),hand=$('#hand');
 function envH(c){return `<svg viewBox="0 0 150 100"><rect x="3" y="3" width="144" height="94" rx="8" fill="${c}" stroke="rgba(0,0,0,.2)" stroke-width="3"/><path d="M6 8 L75 56 L144 8" fill="none" stroke="rgba(0,0,0,.2)" stroke-width="4" stroke-linejoin="round"/><rect x="114" y="14" width="22" height="26" rx="3" fill="#fff" opacity=".9"/></svg>`}
-function cubHTML(i){const n=Math.min(counts[i],14);return `<div class="face" style="background:${COLS[i].c}"><div class="lab">${COLS[i].n}</div><div class="pile">${'<i></i>'.repeat(n)}</div><div class="cnt">${counts[i]}</div></div>`}
+function cubHTML(i){const n=Math.min(counts[i],20);return `<div class="face" style="background:${COLS[i].c}"><div class="lab">${COLS[i].n}</div><div class="pile">${'<i></i>'.repeat(n)}</div><div class="cnt">${counts[i]}</div></div>`}
 track.innerHTML=COLS.map((c,i)=>`<div class="cub" data-i="${i}">${cubHTML(i)}</div>`).join('');
 function layoutShelf(anim,dx=0){
  const W=stage.clientWidth;cubW=Math.min(W*.62,260);
@@ -246,8 +246,8 @@ function layoutShelf(anim,dx=0){
  track.classList.toggle('snap',anim);
  track.style.transform=`translateX(${(W-cubW)/2-idx*(cubW+gap)+dx}px)`}
 let lastC=-1;
-function refill(){while(deck.length<10){let c;do{c=Math.floor(Math.random()*COLS.length)}while(c===lastC);lastC=c;const n=4+Math.floor(Math.random()*4);for(let k=0;k<n;k++)deck.push(c)}}
-function renderHand(){refill();hand.innerHTML=deck.slice(0,7).map((c,k)=>`<div class="card" style="transform:translate(${k*3}px,${k*4}px) rotate(${[-3,4,-5,3,-4,5,-2][k]}deg);z-index:${7-k}">${envH(COLS[c].c)}</div>`).join('')}
+function refill(){while(deck.length<14){let c;do{c=Math.floor(Math.random()*COLS.length)}while(c===lastC);lastC=c;const n=7+Math.floor(Math.random()*5);for(let k=0;k<n;k++)deck.push(c)}}
+function renderHand(){refill();hand.innerHTML=deck.slice(0,10).map((c,k)=>`<div class="card" style="transform:translate(${k*3}px,${k*4}px) rotate(${[-3,4,-5,3,-4,5,-2,4,-3,2][k]}deg);z-index:${10-k}">${envH(COLS[c].c)}</div>`).join('')}
 renderHand();
 let sd=null;
 $('#m-sort').addEventListener('pointerdown',e=>{
@@ -312,28 +312,36 @@ function flip(e){addTie();const r=stage.getBoundingClientRect(),z=document.creat
 
 /* ---------- 4. 영수증 ---------- */
 const ITEMS=[['우표',430],['엽서',400],['등기 수수료',2100],['소포 2kg',5000],['소포 5kg',7000],['규격봉투',50],['뽁뽁이',500],['빠른우편',2900],['상자 (중)',900]];
-let len=0,cutAt=300,rcpts=0,lastPrint=0,rd=null;
+let len=0,cutAt=300,rcpts=0,lastPrint=0,rd=null,glide=0;
 const paper=$('#paper'),rc=$('#rc'),slash=$('#slash');
 function newReceipt(){
  const n=8+Math.floor(Math.random()*4),list=[];
  for(let i=0;i<n;i++)list.push(pick(ITEMS));
  const sum=list.reduce((a,b)=>a+b[1],0);
  rc.innerHTML=`<div class="cut">✂ 여기를 가로로 자르기</div><div class="t">부엌강아지 우체국</div><div class="row" style="color:#888"><span>접수 No.${1000+Math.floor(Math.random()*9000)}</span><span>2026.11.20</span></div>${list.map(([a,b])=>`<div class="row"><span>${a}</span><span>${b.toLocaleString()}원</span></div><div class="row" style="color:#888;font-size:12px;margin-bottom:4px"><span>&nbsp;&nbsp;받는곳 ${pick(['서울','부산','제주','대구','광주','강릉','전주','춘천'])}</span><span>${(Math.random()*4+0.2).toFixed(1)}kg</span></div>`).join('')}<div class="row sum"><span>합계</span><span>${sum.toLocaleString()}원</span></div><div style="text-align:center;margin-top:6px">감사합니다</div>`;
- paper.classList.remove('drop');len=0;paper.style.height='0';
+ cancelAnimationFrame(glide);paper.classList.remove('drop');len=0;paper.style.height='0';
  requestAnimationFrame(()=>cutAt=rc.offsetHeight);$('#warn').classList.remove('on')}
 newReceipt();
 const rSec=$('#m-rcpt');
-rSec.addEventListener('pointerdown',e=>{A();rd={x:e.clientX,y:e.clientY,ly:e.clientY,kind:null};rSec.setPointerCapture(e.pointerId)});
+// 종이를 d 만큼 더 뽑기
+function feed(d){if(d<=0||paper.classList.contains('drop'))return;len=Math.min(len+d,cutAt+160);paper.style.height=len+'px';
+ if(len-lastPrint>8){sfx.print();lastPrint=len}if(len<lastPrint)lastPrint=len;
+ $('#warn').classList.toggle('on',len>cutAt+50)}
+// 손을 뗀 뒤 남은 속도로 미끄러지기 (점점 느려짐)
+function slide(v){let last=performance.now();cancelAnimationFrame(glide);
+ const step=now=>{const dt=Math.min(40,now-last);last=now;v*=Math.exp(-dt/170);feed(v*dt);
+  if(v>0.03&&len<cutAt+160)glide=requestAnimationFrame(step)};glide=requestAnimationFrame(step)}
+rSec.addEventListener('pointerdown',e=>{A();cancelAnimationFrame(glide);rd={x:e.clientX,y:e.clientY,ly:e.clientY,lt:performance.now(),v:0,kind:null};rSec.setPointerCapture(e.pointerId)});
 rSec.addEventListener('pointermove',e=>{if(!rd)return;
  const dx=e.clientX-rd.x,dy=e.clientY-rd.y;
  if(!rd.kind&&Math.hypot(dx,dy)>10)rd.kind=Math.abs(dy)>Math.abs(dx)?'pull':'cut';
- if(rd.kind==='pull'){const step=e.clientY-rd.ly;rd.ly=e.clientY;
-  if(step>0&&!paper.classList.contains('drop')){len=Math.min(len+step*.6,cutAt+160);paper.style.height=len+'px';
-   if(len-lastPrint>8){sfx.print();lastPrint=len}if(len<lastPrint)lastPrint=len;
-   $('#warn').classList.toggle('on',len>cutAt+50)}}
+ if(rd.kind==='pull'){const step=e.clientY-rd.ly,now=performance.now(),dt=Math.max(1,now-rd.lt);rd.ly=e.clientY;rd.lt=now;
+  // 손가락보다 살짝 덜 따라오되 (0.8), 속도는 부드럽게 평균
+  const d=Math.max(0,step)*.8;rd.v=rd.v*.6+(d/dt)*.4;feed(d)}
  if(rd.kind==='cut'){const r=stage.getBoundingClientRect();
   slash.innerHTML=`<line x1="${rd.x-r.left}" y1="${rd.y-r.top}" x2="${e.clientX-r.left}" y2="${e.clientY-r.top}" stroke="#e5322d" stroke-width="4" stroke-linecap="round" stroke-dasharray="10 6"/>`}});
 rSec.addEventListener('pointerup',e=>{if(!rd)return;const dx=e.clientX-rd.x;
+ if(rd.kind==='pull'&&performance.now()-rd.lt<80&&rd.v>0.05)slide(Math.min(rd.v,2.5));
  slash.innerHTML='';
  if(rd.kind==='cut'&&Math.abs(dx)>60){
   if(len>=cutAt-4){sfx.cut();rcpts++;$('#rCount').textContent=rcpts;popText($('#rPop'),len>cutAt+50?'싹둑 (좀 길다)':'싹둑!');
