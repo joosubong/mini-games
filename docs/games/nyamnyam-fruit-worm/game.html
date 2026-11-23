@@ -265,16 +265,16 @@ function cellAt(e) {
 function handle(e) {
   const c = cellAt(e);
   if (!c) return;
-  if (!path.length) { path.push(c); return; }
+  if (!path.length) { path.push(c); SFX.select(1); return; }
   const last = path[path.length - 1];
   if (c[0] === last[0] && c[1] === last[1]) return;
   if (path.length >= 2) {
     const pv = path[path.length - 2];
-    if (pv[0] === c[0] && pv[1] === c[1]) { path.pop(); return; }
+    if (pv[0] === c[0] && pv[1] === c[1]) { path.pop(); SFX.undo(); return; }
   }
   if (Math.max(Math.abs(c[0] - last[0]), Math.abs(c[1] - last[1])) !== 1) return;
   if (path.some(p => p[0] === c[0] && p[1] === c[1])) return;
-  if (canAdd(c[0], c[1])) path.push(c);
+  if (canAdd(c[0], c[1])) { path.push(c); SFX.select(path.length); }
 }
 
 cv.addEventListener('pointerdown', e => {
@@ -290,7 +290,7 @@ function endDrag() {
   if (!dragging) return;
   dragging = false;
   if (state === 'play' && path.length >= MIN_CHAIN) startEat();
-  else if (path.length > 1) setMsg('3개 이상 이어야 해요');
+  else if (path.length > 1) { setMsg('3개 이상 이어야 해요'); SFX.fail(); }
   path = [];
 }
 cv.addEventListener('pointerup', endDrag);
@@ -302,7 +302,7 @@ function startEat() {
   const pts = path.map(ctr);
   const cum = [0];
   for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
-  anim = { pts, cum, d: 0, cells: path.slice() };
+  anim = { pts, cum, d: 0, cells: path.slice(), eaten: 0 };
 }
 
 function pointAt(a, d) {
@@ -322,11 +322,11 @@ function finishEat() {
   const before = fruitCount();
   score += pts;
   const after = fruitCount();
-  if (after > before) showBanner(FRUITS[after - 1]);
+  if (after > before) { showBanner(FRUITS[after - 1]); SFX.fruit(); }
   const lp = anim.pts[anim.pts.length - 1];
   popups.push({ x: lp[0], y: lp[1], text: '+' + pts, t: 1 });
   const tb = timeBonus(n);
-  if (tb) { timeLeft = Math.min(TIME, timeLeft + tb); setMsg('+' + tb + '초!'); }
+  if (tb) { timeLeft = Math.min(TIME, timeLeft + tb); setMsg('+' + tb + '초!'); if (after === before) SFX.bonus(); }
   // 먹은 과일을 판에서 지운 뒤 위 과일들을 내림
   anim.cells.forEach(c => { grid[c[1]][c[0]] = null; });
   dropDown();
@@ -361,6 +361,8 @@ function startGame(m) {
   resize();
   fillBoard();
   state = 'play';
+  lastSec = TIME;
+  SFX.start();
 }
 
 function goTitle(first) {
@@ -383,12 +385,12 @@ function resume() {
   $('pauseOv').classList.add('hide');
   state = 'play';
 }
-$('pauseBtn').addEventListener('click', pause);
-$('resumeBtn').addEventListener('click', resume);
+$('pauseBtn').addEventListener('click', () => { SFX.click(); pause(); });
+$('resumeBtn').addEventListener('click', () => { SFX.click(); resume(); });
 $('pauseHomeBtn').addEventListener('click', goTitle);
 document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
 
-let lastScore = 0, lastPlay = 0;
+let lastScore = 0, lastPlay = 0, lastSec = TIME;
 function gameOver() {
   state = 'over'; dragging = false; path = [];
   const pt = Math.floor(playTime);
@@ -396,6 +398,7 @@ function gameOver() {
   if (newBest) { best = score; bestPlay = pt; recSet(mode.key, 'best', best); recSet(mode.key, 'bestPlay', bestPlay); }
   if (pt > bestTime) { bestTime = pt; recSet(mode.key, 'bestTime', bestTime); }
   showBest();
+  SFX.over(newBest);
   lastScore = score; lastPlay = pt;
   $('newBadge').classList.toggle('hide', !newBest);
   $('rScore').textContent = score + '점';
@@ -440,8 +443,43 @@ function drawArt() {
   a.style.width = 20 * u + 'px'; a.style.height = 14 * u + 'px';
 }
 
-// 소리 (아직 소리는 없고 설정만 저장)
-let soundOn = true;
+/* 소리: 파일 없이 WebAudio 로 만드는 8비트 느낌 효과음 */
+let soundOn = true, actx = null;
+function audio() {
+  if (!soundOn) return null;
+  if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
+  if (actx.state === 'suspended') actx.resume();
+  return actx;
+}
+// 음 하나 (f: 시작 음높이, to: 끝 음높이, at: 몇 초 뒤)
+function tone(f, dur, opt) {
+  const a = audio(); if (!a) return;
+  opt = opt || {};
+  const t = a.currentTime + (opt.at || 0), o = a.createOscillator(), g = a.createGain();
+  o.type = opt.type || 'square';
+  o.frequency.setValueAtTime(f, t);
+  if (opt.to) o.frequency.exponentialRampToValueAtTime(opt.to, t + dur);
+  const v = opt.vol || 0.06;
+  g.gain.setValueAtTime(v, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(a.destination);
+  o.start(t); o.stop(t + dur + 0.02);
+}
+const notes = (list, step, opt) => list.forEach((f, i) => tone(f, step * 1.1, Object.assign({ at: i * step }, opt)));
+// 이을 때마다 한 음씩 올라감 (도레미솔라 계단)
+const SCALE = [0, 2, 4, 7, 9];
+const SFX = {
+  select(n) { const k = n - 1, semi = SCALE[k % 5] + 12 * Math.floor(k / 5); tone(392 * Math.pow(2, Math.min(semi, 36) / 12), 0.07, { vol: 0.05 }); },
+  undo() { tone(330, 0.06, { to: 220, vol: 0.04 }); },
+  fail() { notes([220, 165], 0.08, { vol: 0.05 }); },
+  nom(i) { tone(520 + i * 30, 0.06, { to: 260 + i * 15, type: 'triangle', vol: 0.12 }); },
+  bonus() { notes([784, 988, 1175, 1568], 0.06, { vol: 0.045 }); },
+  fruit() { notes([523, 659, 784, 1047, 784, 1047], 0.09, { vol: 0.05 }); },
+  tick() { tone(880, 0.05, { vol: 0.04 }); },
+  start() { notes([523, 659, 784], 0.07, { vol: 0.05 }); },
+  over(best) { best ? notes([523, 659, 784, 1047, 1319], 0.1, { vol: 0.05 }) : notes([523, 392, 330, 262], 0.12, { vol: 0.05, type: 'triangle' }); },
+  click() { tone(660, 0.04, { vol: 0.04 }); },
+};
 try { soundOn = localStorage.getItem(REC + 'sound') !== '0'; } catch (e) {}
 function showSound() {
   $('soundBtn').textContent = soundOn ? '소리 켜짐' : '소리 꺼짐';
@@ -451,6 +489,7 @@ $('soundBtn').addEventListener('click', () => {
   soundOn = !soundOn;
   try { localStorage.setItem(REC + 'sound', soundOn ? '1' : '0'); } catch (e) {}
   showSound();
+  SFX.click();
 });
 
 /* 그리기 */
@@ -543,9 +582,13 @@ function loop(now) {
     playTime += dt; // 총 플레이 시간
     if (anim) {
       anim.d += cs * 12 * dt;
+      while (anim.eaten < anim.cells.length && anim.d >= anim.cum[anim.eaten]) SFX.nom(anim.eaten++);
       if (anim.d >= anim.cum[anim.cum.length - 1] + cs * 0.4) finishEat();
     } else {
       timeLeft -= dt;
+      const sec = Math.ceil(timeLeft);
+      if (sec < lastSec && sec <= 5 && sec > 0) SFX.tick();
+      lastSec = sec;
       if (timeLeft <= 0) { timeLeft = 0; gameOver(); }
     }
   }
