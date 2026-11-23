@@ -29,6 +29,8 @@ for (const g of games) {
   if (g.slug && !fs.existsSync(path.join(ROOT, 'games', g.slug, 'game.html'))) errors.push(`${where}: games/${g.slug}/game.html 없음`);
   if ('ranking' in g && typeof g.ranking !== 'boolean') errors.push(`${where}: ranking 은 true 또는 false`);
   if ('maxScore' in g && !(Number.isSafeInteger(g.maxScore) && g.maxScore > 0)) errors.push(`${where}: maxScore 는 0보다 큰 정수`);
+  if ('rankingModes' in g && !(Array.isArray(g.rankingModes) && g.rankingModes.length &&
+    g.rankingModes.every(m => m && /^[a-z0-9-]+$/.test(m.key || '') && m.name))) errors.push(`${where}: rankingModes 는 [{ key(영문 소문자, 숫자, -), name }] 목록`);
 }
 if (errors.length) {
   console.error('빌드 중단:\n- ' + errors.join('\n- '));
@@ -230,6 +232,16 @@ ${adSlot()}`;
 }
 
 // ---------- 게임 페이지 ----------
+// 랭킹 TOP 10 칸. rankingModes 가 있으면 모드마다 하나씩 ('<slug>:<모드>')
+function rankingHtml(g, base) {
+  const boards = g.rankingModes
+    ? g.rankingModes.map(m => ({ id: `ranking-${m.key}`, game: `${g.slug}:${m.key}`, title: `${m.name} 모드 랭킹 TOP 10` }))
+    : [{ id: 'ranking', game: g.slug }];
+  return `${boards.map(b => `<div class="ranking" id="${b.id}"></div>`).join('\n')}
+<script src="${base}ranking.js"></script>
+<script>${boards.map(b => `Ranking.board(document.getElementById(${JSON.stringify(b.id)}), ${JSON.stringify(b.game)}${b.title ? ', ' + JSON.stringify(b.title) : ''});`).join('\n')}</script>`;
+}
+
 function paragraphs(text) {
   return lines(text).map(p => `<p>${esc(p)}</p>`).join('\n');
 }
@@ -249,9 +261,7 @@ ${paragraphs(g.howTo)}</section>
 function set(o){s.hidden=!o;b.setAttribute('aria-expanded',o)}
 if(location.hash==='#howto')set(true);
 b.addEventListener('click',function(e){e.preventDefault();set(s.hidden);if(!s.hidden)s.scrollIntoView({behavior:'smooth',block:'nearest'})});})();</script>` : ''}
-${g.ranking ? `<div class="ranking" id="ranking"></div>
-<script src="${base}ranking.js"></script>
-<script>Ranking.board(document.getElementById('ranking'), ${JSON.stringify(g.slug)});</script>` : ''}
+${g.ranking ? rankingHtml(g, base) : ''}
 ${adSlot()}
 ${g.story ? `<h2>만든 이야기</h2>
 <div class="prose">${paragraphs(g.story)}</div>` : ''}
@@ -271,6 +281,12 @@ ${g.story ? `<h2>만든 이야기</h2>
     html = html.replace('</head>', `<script src="${base}ranking.js"></script>\n</head>`);
   }
   write(`games/${g.slug}/game.html`, html);
+  // game.html 옆의 다른 파일 (폰트, 라이선스 등) 도 그대로 복사
+  const dir = path.join(ROOT, 'games', g.slug);
+  for (const f of fs.readdirSync(dir)) {
+    if (f === 'game.html' || f.endsWith('.md') || !fs.statSync(path.join(dir, f)).isFile()) continue;
+    fs.copyFileSync(path.join(dir, f), path.join(OUT, 'games', g.slug, f));
+  }
 }
 
 // 게임하기 페이지: 게임만 화면에 꽉 차게, 구석에 [나가기] 하나

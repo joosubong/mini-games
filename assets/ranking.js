@@ -1,6 +1,7 @@
 // 모든 게임이 같이 쓰는 랭킹 스크립트
-// 게임 끝 화면: Ranking.show({ game, score, playTime })
-// 게임 소개 페이지: Ranking.board(요소, game)
+// 게임 끝 화면: Ranking.show({ game, score, playTime, title })
+// 게임 소개 페이지: Ranking.board(요소, game, 제목)
+// 모드가 있는 게임은 game 을 '<slug>:<모드>' 로 쓴다 (games.json 의 rankingModes)
 (function () {
   'use strict';
   var API = '/api/ranking';
@@ -110,7 +111,7 @@
     ov.className = 'rk-ov';
     ov.id = 'rk-ov';
     ov.innerHTML = '<div class="rk-box" role="dialog" aria-modal="true" aria-labelledby="rk-title">' +
-      '<h2 id="rk-title">랭킹 등록</h2><p class="rk-score">' + esc(score) + '점</p>' +
+      '<h2 id="rk-title">' + esc(opt.title || '랭킹 등록') + '</h2><p class="rk-score">' + esc(score) + '점</p>' +
       '<form class="rk-form"><input name="n" maxlength="20" autocomplete="nickname" placeholder="닉네임 (1~10자)" aria-label="닉네임"><button class="rk-btn" type="submit">등록</button></form>' +
       '<p class="rk-msg" aria-live="polite"></p><div class="rk-list"></div>' +
       '<button class="rk-btn rk-gray rk-close" type="button">닫기</button></div>';
@@ -159,15 +160,16 @@
   }
 
   // 게임 소개 페이지의 TOP 10 칸
-  function board(el, game) {
+  function board(el, game, title) {
+    var head = '<h2>' + esc(title || '랭킹 TOP 10') + '</h2>';
     if (!el || !window.fetch) return;
     injectCss();
     el.classList.add('rk-board');
     var draw = function () {
       load(game).then(function (d) {
-        el.innerHTML = '<h2>랭킹 TOP 10</h2>' + tableHtml(d.top, getName());
+        el.innerHTML = head + tableHtml(d.top, getName());
       }, function () {
-        el.innerHTML = '<h2>랭킹 TOP 10</h2><p class="rk-empty">' + FAIL + '</p>';
+        el.innerHTML = head + '<p class="rk-empty">' + FAIL + '</p>';
       });
     };
     draw();

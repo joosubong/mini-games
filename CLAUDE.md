@@ -3,7 +3,7 @@
 ## 구조
 - `config.json`: 사이트 설정. `adsEnabled`, `adsenseClient`, `adsenseSlot`, `analyticsToken`, `contactEmail`(문의 메일, 비우면 안 나옴), `sections`(목록 섹션 순서와 모양: `grid2`, `grid3`, `list`)
 - `games.json`: 게임 목록. 항목 순서가 섹션 안 카드 순서
-- `games/<slug>/game.html`: 게임 원본
+- `games/<slug>/game.html`: 게임 원본. 같은 폴더의 다른 파일(폰트, 라이선스 등, `.md` 제외)도 빌드가 그대로 복사
 - 빌드가 만드는 게임 페이지: `games/<slug>/` 소개 페이지 (게임하기, 하는 법 버튼, 랭킹, 만든 이야기, 광고 자리), `games/<slug>/play.html` 게임하기 페이지 (게임만 화면 가득, 구석에 나가기 버튼). 모두 build.js 템플릿에서 고친다
 - `pages/about.html`, `pages/privacy.html`: 본문만 적는 원본. `<!-- if:ads -->`, `<!-- if:analytics -->` ... `<!-- endif -->` 는 설정이 켜졌을 때만 남음. `<!-- mail -->` 자리에 문의 메일 링크가 들어감
 - `build.js`: Node 기본 모듈만 사용. 외부 패키지 추가 금지
@@ -20,6 +20,7 @@
 - `summary`: 카드 설명. 문자열 배열(한 줄씩). `{사과:#3f8fe0}` 은 그 색 사과 아이콘
 - `howTo`, `story`: 3~5문장 쉬운 한국어. 줄바꿈(`\n`)은 문단 나눔
 - `ranking`: `true` 면 랭킹 사용 (없으면 꺼짐). `maxScore`: 이보다 큰 점수는 서버가 거절
+- `rankingModes`: 모드별로 랭킹을 나눌 때 `[{ "key": "basic", "name": "기본" }]`. 서버와 `Ranking.show` 의 game 은 `<slug>:<key>`, 소개 페이지에 모드마다 TOP 10 칸이 생김
 
 ## 랭킹 켜는 법
 1. `games.json` 그 게임에 `"ranking": true` (필요하면 `maxScore`)

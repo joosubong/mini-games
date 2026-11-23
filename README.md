@@ -17,6 +17,8 @@ https://joosubong.github.io/mini-games/
    (플레이 시간 변수가 없으면 `playTime` 은 빼도 됨)
 3. `node build.js`
 
+모드마다 랭킹을 나누려면 `"rankingModes": [{ "key": "basic", "name": "기본" }, ...]` 를 넣고, 게임에서는 `game: '<slug>:<key>'` 로 부르면 됨.
+
 욕설 목록은 `badwords.json` 에 추가하면 됨. 서버는 `functions/api/ranking.js`, DB 스키마는 `schema.sql`.
 
 ## 구조

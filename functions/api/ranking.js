@@ -1,5 +1,5 @@
 // 랭킹 API (Cloudflare Pages Functions, D1 바인딩 이름 DB)
-// GET  /api/ranking?game=<slug>                      : TOP 10
+// GET  /api/ranking?game=<slug>                      : TOP 10 (모드가 있으면 <slug>:<모드>)
 // POST /api/ranking { game, name, score, playTime }  : 등록 후 내 순위와 TOP 10
 import games from '../../games.json';
 import badwords from '../../badwords.json';
@@ -9,7 +9,11 @@ const RATE_WINDOW = 60;  // 초
 const RATE_MAX = 5;      // 1분에 이만큼까지만
 
 // ranking: true 인 게임만 받는다
-const GAMES = new Map(games.filter(g => g.ranking).map(g => [g.slug, g]));
+// rankingModes 가 있으면 모드마다 따로: '<slug>:<모드 key>' (slug 에는 : 가 없어서 안 겹침)
+const GAMES = new Map(games.filter(g => g.ranking).flatMap(g =>
+  Array.isArray(g.rankingModes) && g.rankingModes.length
+    ? g.rankingModes.map(m => [`${g.slug}:${m.key}`, g])
+    : [[g.slug, g]]));
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), {
   status,

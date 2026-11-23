@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<script>(function(){var p=function(e){e.preventDefault()};['gesturestart','gesturechange','gestureend'].forEach(function(t){document.addEventListener(t,p,{passive:false})});document.addEventListener('touchmove',function(e){if(e.touches.length>1)e.preventDefault()},{passive:false});})();</script>
+<title>냠냠 과일벌레 | 부엌강아지 미니게임 실험실</title>
+<meta name="description" content="도트 과일 이어먹기, 60초, 기본: 과일 4가지, 7개 이으면 +2초, 도전: 점수 따라 과일이 늘어나요">
+<link rel="canonical" href="https://joosubong.github.io/mini-games/games/nyamnyam-fruit-worm/">
+<meta property="og:title" content="냠냠 과일벌레 | 부엌강아지 미니게임 실험실">
+<meta property="og:description" content="도트 과일 이어먹기, 60초, 기본: 과일 4가지, 7개 이으면 +2초, 도전: 점수 따라 과일이 늘어나요">
+<meta property="og:url" content="https://joosubong.github.io/mini-games/games/nyamnyam-fruit-worm/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light dark;--bg:light-dark(#fdf3e1,#2a2018);--ink:light-dark(#4a3426,#f6e7d0);--card:light-dark(#fffaf0,#3a2c20);--line:light-dark(#e4cfae,#5a4430);--sub:light-dark(#7a6250,#cbb79f)}
+*{box-sizing:border-box;margin:0;padding:0}
+html{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+main{max-width:640px;margin:0 auto;padding:32px 16px 48px}
+a{color:inherit}
+h1{font-family:"Jua",sans-serif;font-size:34px;line-height:1.1;margin-bottom:8px}
+h2{font-family:"Jua",sans-serif;font-size:24px;line-height:1.2;margin:28px 0 8px}
+.lead{color:var(--sub);margin-bottom:24px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.three a.sq{aspect-ratio:auto;min-height:150px}
+.list{display:grid;gap:14px;margin-bottom:14px}
+a.card{display:block;text-decoration:none;color:inherit;background:var(--card);border-radius:16px;padding:16px 18px;box-shadow:0 3px 0 var(--line);transition:transform .15s}
+a.card:hover{transform:translateY(-2px)}
+a.card:focus-visible{outline:3px solid #e2553f;outline-offset:3px}
+a.sq{aspect-ratio:5/4;min-height:max-content;display:flex;flex-direction:column;justify-content:space-between;padding:14px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px}
+.name{font-family:"Jua",sans-serif;font-size:22px;line-height:1.2}
+.sq .name{font-size:20px}
+.sub{display:block;font-family:"Jua",sans-serif;font-size:14px;line-height:1.35;color:var(--sub);margin-top:4px}
+.ln{display:flex;align-items:center;gap:4px;white-space:nowrap}
+.ap{width:18px;height:18px;flex:none}
+.tag{font-size:13px;padding:2px 10px;border-radius:999px;white-space:nowrap;background:#e2553f;color:#fff;align-self:flex-start}
+.tag.try{background:#8b6b4a}
+.tag.old{background:#b3a593}
+.desc{color:var(--sub);font-size:15px}
+.home{display:inline-block;font-family:"Jua",sans-serif;font-size:17px;color:var(--sub);text-decoration:none;margin-bottom:18px}
+.home:hover{color:var(--ink)}
+.head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.head h1{margin:0}
+.meta{color:var(--sub);font-size:14px;margin-bottom:16px}
+.btns{display:flex;gap:10px;margin:4px 0 8px}
+.btn{flex:1;display:flex;align-items:center;justify-content:center;min-height:58px;font-family:"Jua",sans-serif;font-size:22px;background:#e2553f;color:#fff;text-decoration:none;border-radius:16px;box-shadow:0 4px 0 #a83727}
+.btn.sub2{background:#8b6b4a;box-shadow:0 4px 0 #5e4630}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 #a83727}
+.btn:focus-visible{outline:3px solid #7cc36a;outline-offset:3px}
+.howto{background:var(--card);border-radius:16px;padding:4px 18px 8px;margin-top:14px;box-shadow:0 3px 0 var(--line)}
+.howto h2{margin-top:12px}
+.prose p{margin-bottom:10px}
+.prose ul{margin:0 0 10px 20px}
+.back{display:inline-block;margin-top:28px;font-family:"Jua",sans-serif;font-size:18px}
+.ranking{margin-top:28px;min-height:60px}
+.ad{margin:20px 0;min-height:100px;text-align:center}
+footer{margin-top:28px;font-size:13px;color:var(--sub)}
+footer a{color:var(--sub)}
+@media (max-width:480px){.sq .name{font-size:17px}.sub{font-size:12px}a.sq{padding:12px}.tag{font-size:12px;padding:2px 8px}}
+@media (prefers-reduced-motion:reduce){a.card{transition:none}}
+</style>
+</head>
+<body>
+<main>
+<div class="head"><h1>냠냠 과일벌레</h1><span class="tag">진행 중</span></div>
+<p class="meta">도트 과일 이어먹기, 60초, 기본: 과일 4가지, 7개 이으면 +2초, 도전: 점수 따라 과일이 늘어나요</p>
+<div class="btns"><a class="btn" href="play.html">게임하기</a><a class="btn sub2" href="#howto" id="howtoBtn" aria-controls="howto" aria-expanded="false">하는 법</a></div>
+<section class="howto prose" id="howto" hidden><h2>하는 법</h2>
+<p>같은 과일을 손가락으로 3개 이상 이어주세요. 옆이나 대각선으로 붙어 있으면 이을 수 있고, 지나온 칸으로 되돌아가면 취소돼요. 애벌레가 줄을 따라 냠냠 먹고, 길게 이을수록 점수가 훨씬 커져요.</p>
+<p>기본 모드는 사과, 수박, 포도, 레몬 4가지로만 해요. 7개 이으면 2초가 늘고, 3개 더 이을 때마다 1초씩 더 늘어요.</p>
+<p>도전 모드는 6개부터 2초가 늘고, 2개 더 이을 때마다 1초씩 더 늘어요. 대신 3000점에 오렌지, 8000점에 블루베리, 20000점에 복숭아가 나와서 점점 어려워져요. 시간은 60초보다 많이 쌓이지 않아요.</p></section>
+<noscript><style>#howto[hidden]{display:block}</style></noscript>
+<script>(function(){var b=document.getElementById('howtoBtn'),s=document.getElementById('howto');
+function set(o){s.hidden=!o;b.setAttribute('aria-expanded',o)}
+if(location.hash==='#howto')set(true);
+b.addEventListener('click',function(e){e.preventDefault();set(s.hidden);if(!s.hidden)s.scrollIntoView({behavior:'smooth',block:'nearest'})});})();</script>
+<div class="ranking" id="ranking-basic"></div>
+<div class="ranking" id="ranking-challenge"></div>
+<script src="../../ranking.js"></script>
+<script>Ranking.board(document.getElementById("ranking-basic"), "nyamnyam-fruit-worm:basic", "기본 모드 랭킹 TOP 10");
+Ranking.board(document.getElementById("ranking-challenge"), "nyamnyam-fruit-worm:challenge", "도전 모드 랭킹 TOP 10");</script>
+<h2>만든 이야기</h2>
+<div class="prose"><p>애벌레 사과 이어먹기가 손맛이 좋아서, 같은 규칙에 도트 그림 옷을 입혀봤어요. 사과만 있던 판에 수박, 포도, 레몬 같은 여러 과일을 넣어서 한눈에 구분하기 쉽게 했어요. 편하게 하는 기본 모드와, 과일이 늘어나는 도전 모드를 나눠서 랭킹도 따로 겨룰 수 있게 했어요.</p></div>
+<a class="back" href="../../">← 목록으로 돌아가기</a>
+<footer>만든 사람: 부엌강아지 · <a href="../../about.html">소개</a> · <a href="../../privacy.html">개인정보처리방침</a> · <a class="mail" href="#" data-keep>문의</a><noscript> (메일 주소는 자바스크립트를 켜면 보여요)</noscript></footer>
+</main>
+<script>(function(){var m=String.fromCharCode.apply(null,[116,118,106,53,121,108,125,104,117,71,112,112,112,129,112,112,112,129].reverse().map(function(n){return n-7}));document.querySelectorAll('a.mail').forEach(function(a){a.href='mai'+'lto:'+m;if(!a.hasAttribute('data-keep'))a.textContent=m;});})();</script>
+</body>
+</html>
