@@ -11,7 +11,10 @@ const STATUS_CLASS = { '진행 중': '', '실험 중': 'try', '접은 아이디�
 // ---------- 읽기, 검사 ----------
 const readJson = f => JSON.parse(fs.readFileSync(path.join(ROOT, f), 'utf8'));
 const config = readJson('config.json');
-const games = readJson('games.json');
+const allGames = readJson('games.json');
+// hidden: true 는 사이트에 안 보이는 항목 (예: 앱 랭킹용). 서버만 쓴다
+const games = allGames.filter(g => !g.hidden);
+const hiddenGames = allGames.filter(g => g.hidden);
 const siteUrl = config.siteUrl.endsWith('/') ? config.siteUrl : config.siteUrl + '/';
 
 const errors = [];
@@ -31,6 +34,15 @@ for (const g of games) {
   if ('maxScore' in g && !(Number.isSafeInteger(g.maxScore) && g.maxScore > 0)) errors.push(`${where}: maxScore 는 0보다 큰 정수`);
   if ('rankingModes' in g && !(Array.isArray(g.rankingModes) && g.rankingModes.length &&
     g.rankingModes.every(m => m && /^[a-z0-9-]+$/.test(m.key || '') && m.name))) errors.push(`${where}: rankingModes 는 [{ key(영문 소문자, 숫자, -), name }] 목록`);
+}
+for (const g of hiddenGames) {
+  const where = `games.json "${g.slug || g.title || '?'}" (숨김)`;
+  if (g.hidden !== true) errors.push(`${where}: hidden 은 true`);
+  if (!g.slug || !/^[a-zA-Z0-9-]+$/.test(g.slug)) errors.push(`${where}: slug 는 영문, 숫자, - 만 가능`);
+  if (seen.has(g.slug)) errors.push(`${where}: slug 중복`);
+  seen.add(g.slug);
+  if ('ranking' in g && typeof g.ranking !== 'boolean') errors.push(`${where}: ranking 은 true 또는 false`);
+  if ('maxScore' in g && !(Number.isSafeInteger(g.maxScore) && g.maxScore > 0)) errors.push(`${where}: maxScore 는 0보다 큰 정수`);
 }
 if (errors.length) {
   console.error('빌드 중단:\n- ' + errors.join('\n- '));

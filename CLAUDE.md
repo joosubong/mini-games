@@ -20,6 +20,7 @@
 - `summary`: 카드 설명. 문자열 배열(한 줄씩). `{사과:#3f8fe0}` 은 그 색 사과 아이콘
 - `howTo`, `story`: 3~5문장 쉬운 한국어. 줄바꿈(`\n`)은 문단 나눔
 - `ranking`: `true` 면 랭킹 사용 (없으면 꺼짐). `maxScore`: 이보다 큰 점수는 서버가 거절
+- `hidden`: `true` 면 사이트(목록, 게임 페이지, sitemap)에 안 나오고 랭킹 서버만 받는다. 앱 랭킹용. `slug`, `title`, `ranking`, `maxScore` 만 있으면 되고 `game.html` 도 필요 없음
 - `rankingModes`: 모드별로 랭킹을 나눌 때 `[{ "key": "basic", "name": "기본" }]`. 서버와 `Ranking.show` 의 game 은 `<slug>:<key>`, 소개 페이지에 모드마다 TOP 10 칸이 생김
 
 ## 랭킹 켜는 법
